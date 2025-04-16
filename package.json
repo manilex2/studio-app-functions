@@ -1,0 +1,19 @@
+{
+    "name": "studio-spa-functions-backend",
+    "version": "1.0.0",
+    "description": "Funciones Cloud hechas en Nest.js para la app de Studio Spa",
+    "main": "index.ts",
+    "scripts": {
+      "lint": "eslint --ext .js,.ts .",
+      "build": "cd functions/studio-spa && npm run build",
+      "serve": "npm run build && cp functions/studio-spa/package.json functions/studio-spa/dist && cp functions/studio-spa/.env functions/studio-spa/dist && firebase emulators:start --only functions && export GOOGLE_APPLICATION_CREDENTIALS=\"functions/studio-spa/src/serviceAccountKey.json\"",
+      "shell": "npm run build && firebase functions:shell",
+      "start": "npm run shell",
+      "deploy": "firebase deploy --only functions",
+      "logs": "firebase functions:log"
+    },
+    "private": true,
+    "engines": {
+      "node": "18"
+    }
+  }

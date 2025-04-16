@@ -1,0 +1,8 @@
+[
+    {
+      "origin": ["https://studio-manager-vefzvj.web.app", "https://spastudio.flutterflow.app", "https://app.flutterflow.io/debug"],
+      "method": ["GET", "OPTIONS", "HEAD"],
+      "responseHeader": ["Content-Type", "x-goog-meta-custom"],
+      "maxAgeSeconds": 3600
+    }
+  ]

@@ -1,0 +1,23 @@
+{
+  "functions": [
+    {
+      "source": "functions/studio-spa/dist",
+      "codebase": "studio-spa",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "cp \"functions/studio-spa/package.json\" \"functions/studio-spa/dist\"",
+        "npm --prefix \"functions/studio-spa\" run lint",
+        "npm --prefix \"functions/studio-spa\" run build",
+        "cp \"functions/studio-spa/.env\" \"functions/studio-spa/dist\"",
+        "cp \"functions/studio-spa/package.json\" \"functions/studio-spa/dist\""
+      ],
+      "runtime": "nodejs20"
+    }
+  ]
+}
