@@ -103,6 +103,15 @@ export class AuthService {
                <a href="${this.configService.get<string>('STUDIO_URL')}">${this.configService.get<string>('STUDIO_NAME')}</a></p>
                <p>Atentamente,</p><p><b>El equipo de ${this.configService.get<string>('STUDIO_NAME')}</b></p>`,
       });
+
+      if (body.cargo == 'cliente') {
+        const cartRef = this.db.collection('shoppingCart').doc();
+        const cartData = {
+          userRef: newUserRef,
+          shoppingCartItems: [],
+        };
+        await cartRef.set(cartData);
+      }
     } catch (error) {
       throw new HttpException(
         error.message || 'Error interno del servidor',
