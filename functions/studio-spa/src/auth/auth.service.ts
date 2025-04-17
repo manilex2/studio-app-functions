@@ -109,6 +109,7 @@ export class AuthService {
         const cartData = {
           userRef: newUserRef,
           shoppingCartItems: [],
+          wishListItems: [],
         };
         await cartRef.set(cartData);
       }
