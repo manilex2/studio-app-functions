@@ -9,7 +9,7 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import { AuthService, Register } from './auth.service';
 import { Request, Response } from 'express';
 
 @Controller('auth')
@@ -37,7 +37,7 @@ export class AuthController {
   }
   @Post('signup')
   @Header('Content-Type', 'application/json')
-  async singUp(@Body() body: any, @Res() res: Response) {
+  async singUp(@Body() body: Register, @Res() res: Response) {
     try {
       await this.authService.singUp(body);
       return res.status(HttpStatus.CREATED).send({

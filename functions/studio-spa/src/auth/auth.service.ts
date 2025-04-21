@@ -6,6 +6,18 @@ import { createTransport } from 'nodemailer';
 import { genSalt } from 'bcrypt';
 import { JsonWebTokenError, sign, verify } from 'jsonwebtoken';
 
+export interface Register {
+  display_name: string;
+  email: string;
+  enable: boolean;
+  photo_url?: string;
+  rol: string;
+  phone_number: string;
+  cargo: string;
+  cedula: string;
+  ngrams: string[];
+}
+
 @Injectable()
 export class AuthService {
   constructor(private readonly configService: ConfigService) {}
@@ -44,8 +56,20 @@ export class AuthService {
     }
   }
 
-  async singUp(body: any): Promise<void> {
+  async singUp(body: Register): Promise<void> {
     const clave = await this.claveProv();
+
+    const {
+      email,
+      display_name,
+      photo_url,
+      rol,
+      enable,
+      phone_number,
+      cargo,
+      cedula,
+      ngrams,
+    } = body;
 
     try {
       const users = (await this.db.collection('users').get()).docs.map((user) =>
@@ -62,8 +86,8 @@ export class AuthService {
 
       const newUserRef = this.db.collection('users').doc();
       const user = {
-        email: body.email,
-        displayName: body.display_name,
+        email: email,
+        displayName: display_name,
         password: clave,
       };
 
@@ -72,32 +96,33 @@ export class AuthService {
         uid: newUserRef.id,
       });
 
-      const rol = (await this.db.collection('roles').doc(body.rol).get()).ref;
+      const rolRef = (await this.db.collection('roles').doc(rol).get()).ref;
 
       const usuario = {
-        email: body.email,
-        display_name: body.display_name,
-        photo_url: body.photo_url || '',
-        phone_number: body.phone_number,
-        rol: rol,
+        email,
+        display_name,
+        photo_url: photo_url ?? '',
+        phone_number,
+        rol: rolRef,
         uid: userFirebase.uid,
         created_time: new Date(userFirebase.metadata.creationTime),
-        enable: body.enable,
+        enable,
         firstLogin: true,
-        cargo: body.cargo,
-        cedula: body.cedula,
-        rolName: this.capitalize(body.rol),
+        cargo,
+        cedula,
+        rolName: this.capitalize(rol),
+        ngrams,
       };
 
       await newUserRef.set(usuario);
 
       await this.transporter.sendMail({
         from: `${this.configService.get<string>('SENDGRID_SENDER_NAME')} <${this.configService.get<string>('SENDGRID_SENDER_EMAIL')}>`,
-        to: body.email,
+        to: email,
         subject: `Registro de usuario exitoso en ${this.configService.get<string>('STUDIO_NAME')}`,
-        html: `<p>Hola ${body.display_name}</p>
+        html: `<p>Hola ${display_name}</p>
                <p>Has sido registrado en la plataforma de ${this.configService.get<string>('STUDIO_NAME')}.</p>
-               <p>Su usuario es el correo electrónico ${body.email} y su contraseña provisional: <b>${clave}</b></p>
+               <p>Su usuario es el correo electrónico ${email} y su contraseña provisional: <b>${clave}</b></p>
                <p>Al iniciar sesión por primera vez se le solicitará cambiar la contraseña.</p>
                <p>Para ingresar a la plataforma de ${this.configService.get<string>('STUDIO_NAME')} puede ingresar a través del siguiente link: 
                <a href="${this.configService.get<string>('STUDIO_URL')}">${this.configService.get<string>('STUDIO_NAME')}</a></p>
