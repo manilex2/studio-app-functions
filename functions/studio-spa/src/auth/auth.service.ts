@@ -101,7 +101,7 @@ export class AuthService {
       const usuario = {
         email,
         display_name,
-        photo_url: photo_url ?? '',
+        photo_url: photo_url || '',
         phone_number,
         rol: rolRef,
         uid: userFirebase.uid,

@@ -1,5 +1,12 @@
 {
   "projects": {
     "default": "studio-manager-vefzvj"
-  }
+  },
+  "targets": {},
+  "etags": {
+    "studio-manager-vefzvj": {
+      "extensionInstances": {}
+    }
+  },
+  "dataconnectEmulatorConfig": {}
 }
