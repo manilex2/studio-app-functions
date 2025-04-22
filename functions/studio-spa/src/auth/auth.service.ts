@@ -2,9 +2,11 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { createTransport } from 'nodemailer';
 import { genSalt } from 'bcrypt';
 import { JsonWebTokenError, sign, verify } from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface Register {
   display_name: string;
@@ -24,6 +26,9 @@ export class AuthService {
 
   private auth = getAuth();
   private db = getFirestore();
+  private storage = getStorage().bucket(
+    this.configService.get<string>('STORAGE_BUCKET_FIREBASE'),
+  );
   private transporter = createTransport({
     host: this.configService.get<string>('SENDGRID_HOST'),
     port: +this.configService.get<string>('SENDGRID_PORT'),
@@ -98,10 +103,53 @@ export class AuthService {
 
       const rolRef = (await this.db.collection('roles').doc(rol).get()).ref;
 
+      let photo = '';
+
+      if (photo_url) {
+        // 1) Extraer MIME y payload base64
+        const match = photo_url.match(/^data:(.+);base64,(.+)$/);
+        if (!match) {
+          throw new Error('El photo_url no tiene formato Data URI válido');
+        }
+        const mimeType = match[1]; // ej. "image/png" o "application/pdf"
+        const base64Data = match[2]; // la parte pura Base64
+
+        // 2) Derivar extensión a partir del MIME
+        let extension = mimeType.split('/')[1]; // ej. "png", "jpeg", "pdf"
+        // Opcional: si quieres mapear algunos casos especiales:
+        const extMap: Record<string, string> = {
+          jpeg: 'jpg',
+          'svg+xml': 'svg',
+        };
+        extension = extMap[extension] ?? extension;
+
+        // 3) Construir el path dinámico
+        const filePath = `users/${newUserRef.id}/profile/profile.${extension}`;
+
+        // 4) Convertir Base64 a Buffer
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // 5) Subir a Firebase Storage con el contentType correcto
+        const file = this.storage.file(filePath);
+        const downloadToken = uuidv4();
+        await file.save(buffer, {
+          metadata: {
+            contentType: mimeType,
+            metadata: {
+              firebaseStorageDownloadTokens: downloadToken,
+            },
+          },
+        });
+
+        // 6) Construir la URL pública (o firmada)
+        const encodedPath = encodeURIComponent(filePath);
+        photo = `https://firebasestorage.googleapis.com/v0/b/${this.configService.get<string>('STORAGE_BUCKET_FIREBASE')}/o/${encodedPath}?alt=media&token=${downloadToken}`;
+      }
+
       const usuario = {
         email,
         display_name,
-        photo_url: photo_url ?? '',
+        photo_url: photo ?? '',
         phone_number,
         rol: rolRef,
         uid: userFirebase.uid,
