@@ -14,10 +14,11 @@ export interface Register {
   enable: boolean;
   photo_url?: string;
   rol: string;
-  phone_number: string;
+  phone_number?: string;
   cargo: string;
   cedula: string;
   ngrams: string[];
+  genero: string;
 }
 
 @Injectable()
@@ -74,6 +75,7 @@ export class AuthService {
       cargo,
       cedula,
       ngrams,
+      genero,
     } = body;
 
     try {
@@ -150,7 +152,7 @@ export class AuthService {
         email,
         display_name,
         photo_url: photo ?? '',
-        phone_number,
+        phone_number: phone_number ?? null,
         rol: rolRef,
         uid: userFirebase.uid,
         created_time: new Date(userFirebase.metadata.creationTime),
@@ -160,6 +162,7 @@ export class AuthService {
         cedula,
         rolName: this.capitalize(rol),
         ngrams,
+        genero,
       };
 
       await newUserRef.set(usuario);
