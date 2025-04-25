@@ -107,7 +107,7 @@ export class AuthService {
 
       let photo = '';
 
-      if (photo_url != null || photo_url != '') {
+      if (photo_url) {
         // 1) Extraer MIME y payload base64
         const match = photo_url.match(/^data:(.+);base64,(.+)$/);
         if (!match) {
