@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Filter } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { createTransport } from 'nodemailer';
 import { genSalt } from 'bcrypt';
@@ -19,6 +19,11 @@ export interface Register {
   cedula: string;
   ngrams: string[];
   genero: string;
+  unidad?: string;
+  nombreUnidad?: string;
+  category?: string;
+  birthday?: string;
+  completedRegister: boolean;
 }
 
 @Injectable()
@@ -76,17 +81,28 @@ export class AuthService {
       cedula,
       ngrams,
       genero,
+      unidad,
+      birthday,
+      category,
+      completedRegister,
+      nombreUnidad,
     } = body;
 
     try {
-      const users = (await this.db.collection('users').get()).docs.map((user) =>
-        user.data(),
-      );
+      const userSnapshot = await this.db
+        .collection('users')
+        .where(
+          Filter.or(
+            Filter.where('email', '==', email),
+            Filter.where('cedula', '==', cedula),
+          ),
+        )
+        .get();
 
-      const userExists = users.some((user) => user.email === body.email);
+      const userExists = !userSnapshot.empty;
       if (userExists) {
         throw new HttpException(
-          'El usuario ya se encuentra creado.',
+          'El usuario con ese email o cedula ya se encuentra creado.',
           HttpStatus.CONFLICT,
         );
       }
@@ -104,6 +120,9 @@ export class AuthService {
       });
 
       const rolRef = (await this.db.collection('roles').doc(rol).get()).ref;
+      const unidadRef = unidad
+        ? (await this.db.collection('locales').doc(unidad).get()).ref
+        : null;
 
       let photo = '';
 
@@ -163,6 +182,11 @@ export class AuthService {
         rolName: this.capitalize(rol),
         ngrams,
         genero,
+        unidad: unidadRef ?? null,
+        nombreUnidad: nombreUnidad ?? '',
+        category: category ?? '',
+        birthday: birthday ? new Date(birthday) : null,
+        completedRegister: completedRegister ?? true,
       };
 
       await newUserRef.set(usuario);
