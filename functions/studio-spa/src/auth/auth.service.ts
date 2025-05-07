@@ -102,7 +102,7 @@ export class AuthService {
       const userExists = !userSnapshot.empty;
       if (userExists) {
         throw new HttpException(
-          'El usuario con ese email o cedula ya se encuentra creado.',
+          'El usuario con ese email y/o cedula ya se encuentra creado.',
           HttpStatus.CONFLICT,
         );
       }
@@ -182,7 +182,7 @@ export class AuthService {
         rolName: this.capitalize(rol),
         ngrams,
         genero,
-        unidad: unidadRef ?? null,
+        unidad: unidadRef,
         nombreUnidad: nombreUnidad ?? '',
         category: category ?? '',
         birthday: birthday ? new Date(birthday) : null,
