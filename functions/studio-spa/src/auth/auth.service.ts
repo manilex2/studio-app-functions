@@ -212,6 +212,15 @@ export class AuthService {
           wishListItems: [],
         };
         await cartRef.set(cartData);
+
+        const pointsRef = this.db.collection('puntosTotales').doc();
+        const pointsData = {
+          userRef: newUserRef,
+          puntosTotales: 0,
+          puntosVigentes: 0,
+          puntosPorCaducar: 0,
+        };
+        await pointsRef.set(pointsData);
       }
     } catch (error) {
       throw new HttpException(
