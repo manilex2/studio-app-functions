@@ -28,9 +28,13 @@ const createFunction = async (expressInstance: Express) => {
 
     const corsOptions: CorsOptions = {
       origin: [
+        'https://app.flutterflow.io/debug',
         'https://studio-manager-vefzvj.web.app',
         'https://spastudio.flutterflow.app',
-        'https://app.flutterflow.io/debug',
+        'https://dr-hair-salon.web.app',
+        'https://drhairsalons.com',
+        'https://dr-hair-ae951.web.app',
+        'https://drhairecu.com',
       ],
       methods: 'GET, POST, PUT, OPTIONS',
       allowedHeaders: 'Content-Type, Authorization',

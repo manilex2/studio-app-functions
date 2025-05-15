@@ -46,7 +46,7 @@ firebase-debug.*.log*
 .env.test.local
 .env.production.local
 .env.local
-
+*.env
 # temp directory
 .temp
 .tmp
@@ -107,3 +107,4 @@ node_modules/
 
 # Google Credentials
 serviceAccountKey.json
+serviceAccountKey-*.json
