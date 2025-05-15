@@ -1,6 +1,6 @@
 [
     {
-      "origin": ["https://studio-manager-vefzvj.web.app", "https://spastudio.flutterflow.app", "https://app.flutterflow.io/debug"],
+      "origin": ["https://studio-manager-vefzvj.web.app", "https://spastudio.flutterflow.app", "https://app.flutterflow.io/debug", "https://drhairecu.com", "https://dr-hair-ae951.web.app", "https://drhairsalons.com", "https://drhairsalons.com"],
       "method": ["GET", "OPTIONS", "HEAD"],
       "responseHeader": ["Content-Type", "x-goog-meta-custom"],
       "maxAgeSeconds": 3600
