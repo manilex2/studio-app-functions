@@ -12,18 +12,23 @@ export interface Register {
   display_name: string;
   email: string;
   enable: boolean;
-  photo_url?: string;
   rol: string;
   phone_number?: string;
   cargo: string;
   cedula: string;
   ngrams: string[];
   genero: string;
+  completedRegister: boolean;
+  photo_url?: string;
   unidad?: string;
   nombreUnidad?: string;
   category?: string;
-  birthday?: string;
-  completedRegister: boolean;
+  birthday?: Date;
+  direccion?: string;
+  medicamentos?: string;
+  antecedentesPersonales?: string;
+  alergias?: string;
+  antecedentesFamiliares?: string;
 }
 
 @Injectable()
@@ -86,6 +91,11 @@ export class AuthService {
       category,
       completedRegister,
       nombreUnidad,
+      alergias,
+      antecedentesFamiliares,
+      antecedentesPersonales,
+      direccion,
+      medicamentos,
     } = body;
 
     try {
@@ -187,6 +197,11 @@ export class AuthService {
         category: category ?? '',
         birthday: birthday ? new Date(birthday) : null,
         completedRegister: completedRegister ?? true,
+        alergias: alergias ?? '',
+        antecedentesFamiliares: antecedentesFamiliares ?? '',
+        antecedentesPersonales: antecedentesPersonales ?? '',
+        direccion: direccion ?? '',
+        medicamentos: medicamentos ?? '',
       };
 
       await newUserRef.set(usuario);
