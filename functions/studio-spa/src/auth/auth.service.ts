@@ -130,8 +130,8 @@ export class AuthService {
       });
 
       const rolRef = (await this.db.collection('roles').doc(rol).get()).ref;
-      const unidadRef = unidad
-        ? (await this.db.collection('locales').doc(unidad).get()).ref
+      const unidadDoc = unidad
+        ? await this.db.collection('locales').doc(unidad).get()
         : null;
 
       let photo = '';
@@ -192,8 +192,8 @@ export class AuthService {
         rolName: this.capitalize(rol),
         ngrams,
         genero,
-        unidad: unidadRef,
-        nombreUnidad: nombreUnidad ?? '',
+        unidad: unidadDoc.ref,
+        nombreUnidad: nombreUnidad ?? unidadDoc.data().nombre_unidad,
         category: category ?? '',
         birthday: birthday ? new Date(birthday) : null,
         completedRegister: completedRegister ?? true,
