@@ -1,12 +1,10 @@
 {
   "projects": {
-    "default": "studio-manager-vefzvj"
+    "default": "studio-manager-vefzvj",
+    "drhair": "dr-hair-12585",
+    "drhairsalon": "dr-hair-salon"
   },
   "targets": {},
-  "etags": {
-    "studio-manager-vefzvj": {
-      "extensionInstances": {}
-    }
-  },
+  "etags": {},
   "dataconnectEmulatorConfig": {}
 }
