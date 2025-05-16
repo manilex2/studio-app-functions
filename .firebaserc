@@ -5,6 +5,10 @@
     "drhairsalon": "dr-hair-salon"
   },
   "targets": {},
-  "etags": {},
+  "etags": {
+    "studio-manager-vefzvj": {
+      "extensionInstances": {}
+    }
+  },
   "dataconnectEmulatorConfig": {}
 }
