@@ -103,7 +103,7 @@ export class AuthService {
         .collection('users')
         .where(
           Filter.or(
-            Filter.where('email', '==', email),
+            Filter.where('email', '==', email.trim()),
             Filter.where('cedula', '==', cedula),
           ),
         )
@@ -119,7 +119,7 @@ export class AuthService {
 
       const newUserRef = this.db.collection('users').doc();
       const user = {
-        email: email,
+        email: email.trim(),
         displayName: display_name,
         password: clave,
       };
@@ -178,7 +178,7 @@ export class AuthService {
       }
 
       const usuario = {
-        email,
+        email: email.trim(),
         display_name,
         photo_url: photo ?? '',
         phone_number: phone_number ?? null,
@@ -212,7 +212,7 @@ export class AuthService {
         subject: `Registro de usuario exitoso en ${this.configService.get<string>('STUDIO_NAME')}`,
         html: `<p>Hola ${display_name}</p>
                <p>Has sido registrado en la plataforma de ${this.configService.get<string>('STUDIO_NAME')}.</p>
-               <p>Su usuario es el correo electrónico ${email} y su contraseña provisional: <b>${clave}</b></p>
+               <p>Su usuario es el correo electrónico ${email.trim()} y su contraseña provisional: <b>${clave}</b></p>
                <p>Al iniciar sesión por primera vez se le solicitará cambiar la contraseña.</p>
                <p>Para ingresar a la plataforma de ${this.configService.get<string>('STUDIO_NAME')} puede ingresar a través del siguiente link: 
                <a href="${this.configService.get<string>('STUDIO_URL')}">${this.configService.get<string>('STUDIO_NAME')}</a></p>
