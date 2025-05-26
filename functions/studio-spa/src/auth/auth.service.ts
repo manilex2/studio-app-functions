@@ -192,7 +192,7 @@ export class AuthService {
         rolName: this.capitalize(rol),
         ngrams,
         genero,
-        unidad: unidadDoc.ref,
+        unidad: unidadDoc ? unidadDoc.ref : null,
         nombreUnidad: nombreUnidad ?? unidadDoc.data().nombre_unidad,
         category: category ?? '',
         birthday: birthday ? new Date(birthday) : null,
@@ -322,10 +322,11 @@ export class AuthService {
         html: `
           <p>Hola, ${userRecord.displayName}</p>
           <p>Hemos recibido una solicitud para restablecer su contraseña.</p>
-          <p>Haz clic en el siguiente enlace para restablecerla:</p>
+          <p>Haz clic en el siguiente enlace para confirmar el reestablecimiento:</p>
           <a href="${resetLink}">Restablecer contraseña</a>
           <p>Este enlace expirará en 1 hora.</p>
           <p>En caso de no haberla solicitado puede hacer caso omiso a este email.</p>
+          <p>Luego de confirmar le llegará una clave provisional a este email.</p>
           <p>Atentamente,</p>
           <p><b>El equipo de ${this.configService.get<string>('STUDIO_NAME')}</b></p>
         `,
@@ -379,7 +380,7 @@ export class AuthService {
           <p>Su nueva contraseña es: <strong>${newPassword}</strong></p>
           <p>Al iniciar sesión, se le solicitará cambiar esta contraseña.</p>
           <p>Puede acceder a través del siguiente enlace:</p>
-          <a href="${this.configService.get<string>('STUDIO_URL')}">Restablecer contraseña</a>
+          <a href="${this.configService.get<string>('STUDIO_URL')}/login">Iniciar sesión</a>
           <p>Atentamente,</p>
           <p><b>El equipo de ${this.configService.get<string>('STUDIO_NAME')}</b></p>
         `,
