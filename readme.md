@@ -28,8 +28,8 @@ Para completar la configuración debe crear un archivo cors para cada proyecto q
 [
     {
       "origin": [
-        "https://dominio1-permitido.com",
-        "https://dominio2-permitido.com",
+        "https://[DOMINIO-A-PERMITIR].com",
+        "https://[OTRO-DOMINIO-A-PERMITIR].com",
         "...",
       ],
       "method": ["GET", "OPTIONS", "HEAD"],
