@@ -3,13 +3,8 @@
       "origin": [
         "https://app.flutterflow.io/debug",
         "https://spastudio.flutterflow.app",
-        "https://drhairecu.flutterflow.app",
-        "https://drhairsalons.flutterflow.app",
         "https://studio-manager-vefzvj.web.app",
-        "https://dr-hair-12585.web.app",
-        "https://dr-hair-salon.web.app",
-        "https://drhairecu.com",
-        "https://drhairsalons.com"
+        "https://drhairecu.com"
       ],
       "method": ["GET", "OPTIONS", "HEAD"],
       "responseHeader": ["Content-Type", "x-goog-meta-custom"],

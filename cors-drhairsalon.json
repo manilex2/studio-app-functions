@@ -1,0 +1,13 @@
+[
+    {
+      "origin": [
+        "https://app.flutterflow.io/debug",
+        "https://drhairsalons.flutterflow.app",
+        "https://dr-hair-salon.web.app",
+        "https://drhairsalons.com"
+      ],
+      "method": ["GET", "OPTIONS", "HEAD"],
+      "responseHeader": ["Content-Type", "x-goog-meta-custom"],
+      "maxAgeSeconds": 3600
+    }
+  ]
