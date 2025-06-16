@@ -55,14 +55,10 @@ export class ContificoService {
       for (const doc of docs) {
         const productsList = [];
         const serviceList = [];
-        let totalProductValue = 0;
-        let totalServiceValue = 0;
-        let totalClienteValue = 0;
-        let totalAsesorValue = 0;
-        let totalStoreValue = 0;
-        let totalGeneralValue = 0;
-        let totalProducts = 0;
-        let totalServices = 0;
+        const totalClienteValue = 0;
+        const totalAsesorValue = 0;
+        const totalStoreValue = 0;
+        const totalGeneralValue = 0;
         const orderData = {
           idContifico: doc.id,
           orderDate:
@@ -96,20 +92,148 @@ export class ContificoService {
           clientUserId: null,
         };
 
-        for (const detalle of doc.detalles) {
-          const product = await db
-            .collection('productos')
-            .where('idContifico', '==', detalle.producto_id)
-            .get();
+        const ventasGenerales = await db
+          .collection('monthlyStatistics')
+          .where(
+            Filter.and(
+              Filter.where('year', '==', date.getFullYear()),
+              Filter.where('month', '==', date.getMonth() + 1),
+              Filter.where('storeRef', '==', null),
+              Filter.where('asesorRef', '==', null),
+              Filter.where('productRef', '==', null),
+              Filter.where('serviceRef', '==', null),
+              Filter.where('clientRef', '==', null),
+            ),
+          )
+          .get();
 
-          if (!product.empty) {
+        const separateStrings = doc.documento.split('-');
+        const numeroEstablecimiento = separateStrings[0];
+
+        const storeRef = (
+          await db
+            .collection('locales')
+            .where('numeroEstablecimiento', '==', numeroEstablecimiento)
+            .get()
+        ).docs.map((store) => {
+          return store.ref;
+        });
+
+        const ventasPorStore = await db
+          .collection('monthlyStatistics')
+          .where(
+            Filter.and(
+              Filter.where('year', '==', date.getFullYear()),
+              Filter.where('month', '==', date.getMonth() + 1),
+              Filter.where('storeRef', '==', storeRef[0]),
+            ),
+          )
+          .get();
+
+        const asesorRef = (
+          await db
+            .collection('users')
+            .where('cedula', '==', doc.vendedor.cedula)
+            .get()
+        ).docs.map((asesor) => {
+          return asesor.ref;
+        });
+
+        const ventasPorAsesor = await db
+          .collection('monthlyStatistics')
+          .where(
+            Filter.and(
+              Filter.where('year', '==', date.getFullYear()),
+              Filter.where('month', '==', date.getMonth() + 1),
+              Filter.where('asesorRef', '==', asesorRef[0]),
+            ),
+          )
+          .get();
+
+        const clientRef = (
+          await db
+            .collection('users')
+            .where('cedula', '==', doc.cliente.cedula)
+            .get()
+        ).docs.map((cliente) => {
+          return cliente.ref;
+        });
+
+        const ventasPorCliente = await db
+          .collection('monthlyStatistics')
+          .where(
+            Filter.and(
+              Filter.where('year', '==', date.getFullYear()),
+              Filter.where('month', '==', date.getMonth() + 1),
+              Filter.where('clientRef', '==', clientRef[0]),
+            ),
+          )
+          .get();
+
+        for (const detalle of doc.detalles) {
+          const productRef = (
+            await db
+              .collection('productos')
+              .where('idContifico', '==', detalle.producto_id)
+              .get()
+          ).docs.map((product) => {
+            return product.ref;
+          });
+
+          if (productRef.length > 0) {
             productsList.push({
-              productId: product.docs[0].ref,
+              productId: productRef[0],
               quantity: detalle.cantidad,
               totalPrice: detalle.precio * detalle.cantidad,
             });
-            totalProductValue += detalle.precio * detalle.cantidad;
-            totalProducts += detalle.cantidad;
+
+            const ventasPorProducto = await db
+              .collection('monthlyStatistics')
+              .where(
+                Filter.and(
+                  Filter.where('year', '==', date.getFullYear()),
+                  Filter.where('month', '==', date.getMonth() + 1),
+                  Filter.where('productRef', '==', productRef[0]),
+                ),
+              )
+              .get();
+
+            if (ventasPorProducto.empty) {
+              const newDocRef = db.collection('monthlyStatistics').doc();
+              batch.create(newDocRef, {
+                year: date.getFullYear(),
+                month: date.getMonth() + 1,
+                storeRef: storeRef[0] || null,
+                asesorRef: asesorRef[0] || null,
+                productRef: productRef[0],
+                serviceRef: null,
+                clientRef: clientRef[0] || null,
+                productTotalValue: detalle.precio * detalle.cantidad,
+                serviceTotalValue: 0,
+                productCount: detalle.cantidad,
+                serviceCount: 0,
+                totalValue: detalle.precio * detalle.cantidad,
+                totalTransactions: 1,
+                lastUpdate: Timestamp.fromDate(date),
+              });
+            } else {
+              const ventasPorProductoDoc = ventasPorProducto.docs[0];
+              const ventasPorProductoData = ventasPorProductoDoc.data();
+
+              batch.update(ventasPorProductoDoc.ref, {
+                totalValue:
+                  ventasPorProductoData.totalValue +
+                  detalle.precio * detalle.cantidad,
+                productTotalValue:
+                  ventasPorProductoData.totalProducts +
+                  detalle.precio * detalle.cantidad,
+                productCount:
+                  ventasPorProductoData.productCount + detalle.cantidad,
+                totalTransactions: ventasPorProductoData.totalTransactions + 1,
+                lastUpdate: Timestamp.fromDate(date),
+              });
+            }
+
             continue;
           }
 
@@ -125,8 +249,16 @@ export class ContificoService {
               totalPrice: detalle.precio * detalle.cantidad,
             });
 
-            totalServiceValue += detalle.precio * detalle.cantidad;
-            totalServices += detalle.cantidad;
+            const ventasPorServicio = await db
+              .collection('monthlyStatistics')
+              .where(
+                Filter.and(
+                  Filter.where('year', '==', date.getFullYear()),
+                  Filter.where('month', '==', date.getMonth() + 1),
+                  Filter.where('serviceRef', '==', service.docs[0].ref),
+                ),
+              )
+              .get();
           }
         }
 
@@ -221,71 +353,6 @@ export class ContificoService {
           batch.create(newDocRef, newData);
         }
       }
-
-      const ventasGenerales = await db
-        .collection('monthlyStatistics')
-        .where(
-          Filter.and(
-            Filter.where('year', '==', date.getFullYear()),
-            Filter.where('month', '==', date.getMonth() + 1),
-          ),
-        )
-        .get();
-
-      const ventasPorStore = await db
-        .collection('monthlyStatistics')
-        .where(
-          Filter.and(
-            Filter.where('year', '==', date.getFullYear()),
-            Filter.where('month', '==', date.getMonth() + 1),
-            Filter.where('storeRef', '==', null),
-          ),
-        )
-        .get();
-
-      const ventasPorAsesor = await db
-        .collection('monthlyStatistics')
-        .where(
-          Filter.and(
-            Filter.where('year', '==', date.getFullYear()),
-            Filter.where('month', '==', date.getMonth() + 1),
-            Filter.where('asesorRef', '==', null),
-          ),
-        )
-        .get();
-
-      const ventasPorProducto = await db
-        .collection('monthlyStatistics')
-        .where(
-          Filter.and(
-            Filter.where('year', '==', date.getFullYear()),
-            Filter.where('month', '==', date.getMonth() + 1),
-            Filter.where('productRef', '==', null),
-          ),
-        )
-        .get();
-
-      const ventasPorServicio = await db
-        .collection('monthlyStatistics')
-        .where(
-          Filter.and(
-            Filter.where('year', '==', date.getFullYear()),
-            Filter.where('month', '==', date.getMonth() + 1),
-            Filter.where('productRef', '==', null),
-          ),
-        )
-        .get();
-
-      const ventasPorCliente = await db
-        .collection('monthlyStatistics')
-        .where(
-          Filter.and(
-            Filter.where('year', '==', date.getFullYear()),
-            Filter.where('month', '==', date.getMonth() + 1),
-            Filter.where('asesorRef', '==', null),
-          ),
-        )
-        .get();
 
       await batch.commit();
 
