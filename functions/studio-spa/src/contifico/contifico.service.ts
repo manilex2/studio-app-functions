@@ -35,7 +35,7 @@ export class ContificoService {
       // Realizar la solicitud a la API de Contifico
       await axios({
         method: 'GET',
-        url: `${this.configService.get<string>('CONTIFICO_URI_DOCUMENT')}?tipo_registro=CLI&fecha_emision=${ecuadorDateString}`,
+        url: `${this.configService.get<string>('CONTIFICO_URI')}/registro/documento/?tipo_registro=CLI&fecha_emision=${ecuadorDateString}`,
         headers: {
           Authorization: this.configService.get<string>('CONTIFICO_AUTH_TOKEN'),
         },
@@ -55,10 +55,20 @@ export class ContificoService {
       for (const doc of docs) {
         const productsList = [];
         const serviceList = [];
-        const totalClienteValue = 0;
-        const totalAsesorValue = 0;
-        const totalStoreValue = 0;
-        const totalGeneralValue = 0;
+        let ventasGeneralesRef = null;
+        let ventasGeneralesData = null;
+        let ventasPorStoreRef = null;
+        let ventasPorStoreData = null;
+        let ventasPorAsesorRef = null;
+        let ventasPorAsesorData = null;
+        let ventasPorClienteRef = null;
+        let ventasPorClienteData = null;
+        let currentDocProductTotalValue = 0;
+        let currentDocProductCount = 0;
+        let currentDocServiceTotalValue = 0;
+        let currentDocServiceCount = 0;
+        let currentDocTotalValue = 0;
+        let currentDocTotalTransactions = 0;
         const orderData = {
           idContifico: doc.id,
           orderDate:
@@ -80,153 +90,278 @@ export class ContificoService {
           tax: (Number(doc.subtotal_12 ?? 0) * Number(doc.iva ?? 1)) / 100 || 0,
           totalValue: Number(doc.total) ?? 0,
           paymentTransactionId:
-            String(doc.cobros[0].numero_comprobante) || null,
+            doc.cobros.length > 0
+              ? String(doc.cobros[0].numero_comprobante)
+              : null,
           paymentDate:
-            Timestamp.fromDate(this.convertToDate(doc.cobros[0].fecha)) ?? null,
+            doc.cobros.length > 0
+              ? Timestamp.fromDate(this.convertToDate(doc.cobros[0].fecha))
+              : null,
           paymentMethods:
-            doc.cobros[0].forma_cobro == 'TC'
-              ? 'creditCard'
-              : doc.cobros[0].forma_cobro == 'TRA'
-                ? 'bankTransfer'
-                : 'payInStore',
+            doc.cobros.length > 0
+              ? doc.cobros[0].forma_cobro == 'TC'
+                ? 'creditCard'
+                : doc.cobros[0].forma_cobro == 'TRA'
+                  ? 'bankTransfer'
+                  : 'payInStore'
+              : null,
           clientUserId: null,
         };
 
-        const ventasGenerales = await db
-          .collection('monthlyStatistics')
-          .where(
-            Filter.and(
-              Filter.where('year', '==', date.getFullYear()),
-              Filter.where('month', '==', date.getMonth() + 1),
-              Filter.where('storeRef', '==', null),
-              Filter.where('asesorRef', '==', null),
-              Filter.where('productRef', '==', null),
-              Filter.where('serviceRef', '==', null),
-              Filter.where('clientRef', '==', null),
-            ),
-          )
-          .get();
+        const ventasGeneralesDocs = (
+          await db
+            .collection('monthlyStatistics')
+            .where(
+              Filter.and(
+                Filter.where('year', '==', date.getFullYear()),
+                Filter.where('month', '==', date.getMonth() + 1),
+                Filter.where('storeRef', '==', null),
+                Filter.where('asesorRef', '==', null),
+                Filter.where('productRef', '==', null),
+                Filter.where('serviceRef', '==', null),
+                Filter.where('clientRef', '==', null),
+              ),
+            )
+            .get()
+        ).docs;
+
+        if (ventasGeneralesDocs.length < 1) {
+          ventasGeneralesRef = db.collection('monthlyStatistics').doc();
+          ventasGeneralesData = {
+            year: date.getFullYear(),
+            month: date.getMonth() + 1,
+            asesorRef: null,
+            clientRef: null,
+            storeRef: null,
+            productRef: null,
+            serviceRef: null,
+            productTotalValue: 0,
+            serviceTotalValue: 0,
+            productCount: 0,
+            serviceCount: 0,
+            totalValue: 0,
+            totalTransactions: 0,
+            lastUpdate: Timestamp.fromDate(date),
+          };
+          batch.create(ventasGeneralesRef, ventasGeneralesData);
+        } else {
+          ventasGeneralesRef = ventasGeneralesDocs[0].ref;
+          ventasGeneralesData = ventasGeneralesDocs[0].data();
+        }
 
         const separateStrings = doc.documento.split('-');
         const numeroEstablecimiento = separateStrings[0];
 
-        const storeRef = (
+        const storeDocs = (
           await db
             .collection('locales')
             .where('numeroEstablecimiento', '==', numeroEstablecimiento)
+            .limit(1)
             .get()
-        ).docs.map((store) => {
-          return store.ref;
-        });
+        ).docs;
+        const storeRef = storeDocs.length > 0 ? storeDocs[0].ref : null;
 
-        const ventasPorStore = await db
-          .collection('monthlyStatistics')
-          .where(
-            Filter.and(
-              Filter.where('year', '==', date.getFullYear()),
-              Filter.where('month', '==', date.getMonth() + 1),
-              Filter.where('storeRef', '==', storeRef[0]),
-            ),
-          )
-          .get();
-
-        const asesorRef = (
-          await db
-            .collection('users')
-            .where('cedula', '==', doc.vendedor.cedula)
-            .get()
-        ).docs.map((asesor) => {
-          return asesor.ref;
-        });
-
-        const ventasPorAsesor = await db
-          .collection('monthlyStatistics')
-          .where(
-            Filter.and(
-              Filter.where('year', '==', date.getFullYear()),
-              Filter.where('month', '==', date.getMonth() + 1),
-              Filter.where('asesorRef', '==', asesorRef[0]),
-            ),
-          )
-          .get();
-
-        const clientRef = (
-          await db
-            .collection('users')
-            .where('cedula', '==', doc.cliente.cedula)
-            .get()
-        ).docs.map((cliente) => {
-          return cliente.ref;
-        });
-
-        const ventasPorCliente = await db
-          .collection('monthlyStatistics')
-          .where(
-            Filter.and(
-              Filter.where('year', '==', date.getFullYear()),
-              Filter.where('month', '==', date.getMonth() + 1),
-              Filter.where('clientRef', '==', clientRef[0]),
-            ),
-          )
-          .get();
-
-        for (const detalle of doc.detalles) {
-          const productRef = (
+        if (storeRef) {
+          const ventasPorStoreDocs = (
             await db
-              .collection('productos')
-              .where('idContifico', '==', detalle.producto_id)
-              .get()
-          ).docs.map((product) => {
-            return product.ref;
-          });
-
-          if (productRef.length > 0) {
-            productsList.push({
-              productId: productRef[0],
-              quantity: detalle.cantidad,
-              totalPrice: detalle.precio * detalle.cantidad,
-            });
-
-            const ventasPorProducto = await db
               .collection('monthlyStatistics')
               .where(
                 Filter.and(
                   Filter.where('year', '==', date.getFullYear()),
                   Filter.where('month', '==', date.getMonth() + 1),
-                  Filter.where('productRef', '==', productRef[0]),
+                  Filter.where('storeRef', '==', storeRef),
                 ),
               )
+              .limit(1)
+              .get()
+          ).docs;
+
+          if (ventasPorStoreDocs.length < 1) {
+            ventasPorStoreRef = db.collection('monthlyStatistics').doc();
+            ventasPorStoreData = {
+              year: date.getFullYear(),
+              month: date.getMonth() + 1,
+              asesorRef: null,
+              clientRef: null,
+              storeRef: storeRef,
+              productRef: null,
+              serviceRef: null,
+              productTotalValue: 0,
+              serviceTotalValue: 0,
+              productCount: 0,
+              serviceCount: 0,
+              totalValue: 0,
+              totalTransactions: 0,
+              lastUpdate: Timestamp.fromDate(date),
+            };
+            batch.create(ventasPorStoreRef, ventasPorStoreData);
+          } else {
+            ventasPorStoreRef = ventasPorStoreDocs[0].ref;
+            ventasPorStoreData = ventasPorStoreDocs[0].data();
+          }
+        }
+
+        const asesorDocs = (
+          await db
+            .collection('users')
+            .where('cedula', '==', doc.vendedor.cedula)
+            .limit(1)
+            .get()
+        ).docs;
+
+        const asesorRef = asesorDocs.length > 0 ? asesorDocs[0].ref : null;
+
+        if (asesorRef) {
+          const ventasPorAsesorDocs = (
+            await db
+              .collection('monthlyStatistics')
+              .where(
+                Filter.and(
+                  Filter.where('year', '==', date.getFullYear()),
+                  Filter.where('month', '==', date.getMonth() + 1),
+                  Filter.where('asesorRef', '==', asesorRef),
+                ),
+              )
+              .limit(1)
+              .get()
+          ).docs;
+
+          if (ventasPorAsesorDocs.length < 1) {
+            ventasPorAsesorRef = db.collection('monthlyStatistics').doc();
+            ventasPorAsesorData = {
+              year: date.getFullYear(),
+              month: date.getMonth() + 1,
+              asesorRef: asesorRef,
+              clientRef: null,
+              storeRef: null,
+              productRef: null,
+              serviceRef: null,
+              productTotalValue: 0,
+              serviceTotalValue: 0,
+              productCount: 0,
+              serviceCount: 0,
+              totalValue: 0,
+              totalTransactions: 0,
+              lastUpdate: Timestamp.fromDate(date),
+            };
+            batch.create(ventasPorAsesorRef, ventasPorAsesorData);
+          } else {
+            ventasPorAsesorRef = ventasPorAsesorDocs[0].ref;
+            ventasPorAsesorData = ventasPorAsesorDocs[0].data();
+          }
+        }
+
+        const clientDocs = (
+          await db
+            .collection('users')
+            .where('cedula', '==', doc.cliente.cedula)
+            .limit(1)
+            .get()
+        ).docs;
+
+        const clientRef = clientDocs.length > 0 ? clientDocs[0].ref : null;
+
+        if (clientRef) {
+          const ventasPorClienteDocs = (
+            await db
+              .collection('monthlyStatistics')
+              .where(
+                Filter.and(
+                  Filter.where('year', '==', date.getFullYear()),
+                  Filter.where('month', '==', date.getMonth() + 1),
+                  Filter.where('clientRef', '==', clientRef),
+                ),
+              )
+              .limit(1)
+              .get()
+          ).docs;
+
+          if (ventasPorClienteDocs.length < 1) {
+            ventasPorClienteRef = db.collection('monthlyStatistics').doc();
+            ventasPorClienteData = {
+              year: date.getFullYear(),
+              month: date.getMonth() + 1,
+              asesorRef: null,
+              clientRef: clientRef,
+              storeRef: null,
+              productRef: null,
+              serviceRef: null,
+              productTotalValue: 0,
+              serviceTotalValue: 0,
+              productCount: 0,
+              serviceCount: 0,
+              totalValue: 0,
+              totalTransactions: 0,
+              lastUpdate: Timestamp.fromDate(date),
+            };
+            batch.create(ventasPorClienteRef, ventasPorClienteData);
+          } else {
+            ventasPorClienteRef = ventasPorClienteDocs[0].ref;
+            ventasPorClienteData = ventasPorClienteDocs[0].data();
+          }
+        }
+
+        for (const detalle of doc.detalles) {
+          const productDocs = (
+            await db
+              .collection('productos')
+              .where('idContifico', '==', detalle.producto_id)
+              .limit(1)
+              .get()
+          ).docs;
+          const productRef = productDocs.length > 0 ? productDocs[0].ref : null;
+
+          if (productRef) {
+            const detailTotalPrice = detalle.precio * detalle.cantidad;
+            productsList.push({
+              productId: productRef,
+              quantity: detalle.cantidad,
+              totalPrice: detailTotalPrice,
+            });
+
+            currentDocProductTotalValue += detailTotalPrice;
+            currentDocProductCount += detalle.cantidad;
+            currentDocTotalValue += detailTotalPrice;
+            currentDocTotalTransactions++;
+
+            const ventasPorProductoDocs = await db
+              .collection('monthlyStatistics')
+              .where(
+                Filter.and(
+                  Filter.where('year', '==', date.getFullYear()),
+                  Filter.where('month', '==', date.getMonth() + 1),
+                  Filter.where('productRef', '==', productRef),
+                ),
+              )
+              .limit(1)
               .get();
 
-            if (ventasPorProducto.empty) {
+            if (ventasPorProductoDocs.empty) {
               const newDocRef = db.collection('monthlyStatistics').doc();
               batch.create(newDocRef, {
                 year: date.getFullYear(),
                 month: date.getMonth() + 1,
-                storeRef: storeRef[0] || null,
-                asesorRef: asesorRef[0] || null,
-                productRef: productRef[0],
+                storeRef: null,
+                asesorRef: null,
+                productRef: productRef,
                 serviceRef: null,
-                clientRef: clientRef[0] || null,
-                productTotalValue: detalle.precio * detalle.cantidad,
+                clientRef: null,
+                productTotalValue: detailTotalPrice,
                 serviceTotalValue: 0,
                 productCount: detalle.cantidad,
                 serviceCount: 0,
-                totalValue: detalle.precio * detalle.cantidad,
+                totalValue: detailTotalPrice,
                 totalTransactions: 1,
                 lastUpdate: Timestamp.fromDate(date),
               });
             } else {
-              const ventasPorProductoDoc = ventasPorProducto.docs[0];
+              const ventasPorProductoDoc = ventasPorProductoDocs.docs[0];
               const ventasPorProductoData = ventasPorProductoDoc.data();
 
               batch.update(ventasPorProductoDoc.ref, {
-                totalValue:
-                  ventasPorProductoData.totalValue +
-                  detalle.precio * detalle.cantidad,
+                totalValue: ventasPorProductoData.totalValue + detailTotalPrice,
                 productTotalValue:
-                  ventasPorProductoData.totalProducts +
-                  detalle.precio * detalle.cantidad,
+                  ventasPorProductoData.productTotalValue + detailTotalPrice,
                 productCount:
                   ventasPorProductoData.productCount + detalle.cantidad,
                 totalTransactions: ventasPorProductoData.totalTransactions + 1,
@@ -237,42 +372,167 @@ export class ContificoService {
             continue;
           }
 
-          const service = await db
-            .collection('servicios')
-            .where('idContifico', '==', detalle.producto_id)
-            .get();
+          const serviceDocs = (
+            await db
+              .collection('servicios')
+              .where('idContifico', '==', detalle.producto_id)
+              .limit(1)
+              .get()
+          ).docs;
+          const serviceRef = serviceDocs.length > 0 ? serviceDocs[0].ref : null;
 
-          if (!service.empty) {
+          if (serviceRef) {
+            const detailTotalPrice = detalle.precio * detalle.cantidad;
             serviceList.push({
-              serviceId: service.docs[0].ref,
+              serviceId: serviceRef,
               quantity: detalle.cantidad,
-              totalPrice: detalle.precio * detalle.cantidad,
+              totalPrice: detailTotalPrice,
             });
 
-            const ventasPorServicio = await db
+            // Acumular para las estadísticas generales del documento
+            currentDocServiceTotalValue += detailTotalPrice;
+            currentDocServiceCount += detalle.cantidad;
+            currentDocTotalValue += detailTotalPrice;
+            currentDocTotalTransactions++;
+
+            const ventasPorServicioDocs = await db
               .collection('monthlyStatistics')
               .where(
                 Filter.and(
                   Filter.where('year', '==', date.getFullYear()),
                   Filter.where('month', '==', date.getMonth() + 1),
-                  Filter.where('serviceRef', '==', service.docs[0].ref),
+                  Filter.where('serviceRef', '==', serviceRef),
                 ),
               )
+              .limit(1)
               .get();
+
+            if (ventasPorServicioDocs.empty) {
+              const newDocRef = db.collection('monthlyStatistics').doc();
+              batch.create(newDocRef, {
+                year: date.getFullYear(),
+                month: date.getMonth() + 1,
+                storeRef: null,
+                asesorRef: null,
+                productRef: null,
+                serviceRef: serviceRef,
+                clientRef: null,
+                productTotalValue: 0,
+                serviceTotalValue: detailTotalPrice,
+                productCount: 0,
+                serviceCount: detalle.cantidad,
+                totalValue: detailTotalPrice,
+                totalTransactions: 1,
+                lastUpdate: Timestamp.fromDate(date),
+              });
+            } else {
+              const ventasPorServicioDoc = ventasPorServicioDocs.docs[0];
+              const ventasPorServicioData = ventasPorServicioDoc.data();
+
+              batch.update(ventasPorServicioDoc.ref, {
+                totalValue: ventasPorServicioData.totalValue + detailTotalPrice,
+                serviceTotalValue:
+                  ventasPorServicioData.serviceTotalValue + detailTotalPrice,
+                serviceCount:
+                  ventasPorServicioData.serviceCount + detalle.cantidad,
+                totalTransactions: ventasPorServicioData.totalTransactions + 1,
+                lastUpdate: Timestamp.fromDate(date),
+              });
+            }
           }
         }
 
-        const cliente = (
+        batch.update(ventasGeneralesRef, {
+          totalValue: ventasGeneralesData.totalValue + currentDocTotalValue,
+          productTotalValue:
+            ventasGeneralesData.productTotalValue + currentDocProductTotalValue,
+          productCount:
+            ventasGeneralesData.productCount + currentDocProductCount,
+          serviceTotalValue:
+            ventasGeneralesData.serviceTotalValue + currentDocServiceTotalValue,
+          serviceCount:
+            ventasGeneralesData.serviceCount + currentDocServiceCount,
+          totalTransactions:
+            ventasGeneralesData.totalTransactions + currentDocTotalTransactions,
+          lastUpdate: Timestamp.fromDate(date),
+        });
+
+        if (ventasPorStoreRef) {
+          batch.update(ventasPorStoreRef, {
+            totalValue: ventasPorStoreData.totalValue + currentDocTotalValue,
+            productTotalValue:
+              ventasPorStoreData.productTotalValue +
+              currentDocProductTotalValue,
+            productCount:
+              ventasPorStoreData.productCount + currentDocProductCount,
+            serviceTotalValue:
+              ventasPorStoreData.serviceTotalValue +
+              currentDocServiceTotalValue,
+            serviceCount:
+              ventasPorStoreData.serviceCount + currentDocServiceCount,
+            totalTransactions:
+              ventasPorStoreData.totalTransactions +
+              currentDocTotalTransactions,
+            lastUpdate: Timestamp.fromDate(date),
+          });
+        }
+
+        if (ventasPorAsesorRef) {
+          batch.update(ventasPorAsesorRef, {
+            totalValue: ventasPorAsesorData.totalValue + currentDocTotalValue,
+            productTotalValue:
+              ventasPorAsesorData.productTotalValue +
+              currentDocProductTotalValue,
+            productCount:
+              ventasPorAsesorData.productCount + currentDocProductCount,
+            serviceTotalValue:
+              ventasPorAsesorData.serviceTotalValue +
+              currentDocServiceTotalValue,
+            serviceCount:
+              ventasPorAsesorData.serviceCount + currentDocServiceCount,
+            totalTransactions:
+              ventasPorAsesorData.totalTransactions +
+              currentDocTotalTransactions,
+            lastUpdate: Timestamp.fromDate(date),
+          });
+        }
+
+        if (ventasPorClienteRef) {
+          batch.update(ventasPorClienteRef, {
+            totalValue: ventasPorClienteData.totalValue + currentDocTotalValue,
+            productTotalValue:
+              ventasPorClienteData.productTotalValue +
+              currentDocProductTotalValue,
+            productCount:
+              ventasPorClienteData.productCount + currentDocProductCount,
+            serviceTotalValue:
+              ventasPorClienteData.serviceTotalValue +
+              currentDocServiceTotalValue,
+            serviceCount:
+              ventasPorClienteData.serviceCount + currentDocServiceCount,
+            totalTransactions:
+              ventasPorClienteData.totalTransactions +
+              currentDocTotalTransactions,
+            lastUpdate: Timestamp.fromDate(date),
+          });
+        }
+
+        const clienteDocs = (
           await db
             .collection('users')
             .where('cedula', '==', doc.cliente.cedula)
+            .limit(1)
             .get()
-        ).docs.map((contact) => {
-          return contact;
-        });
+        ).docs;
+
+        const clienteRef = clienteDocs.length > 0 ? clienteDocs[0].ref : null;
 
         const existOrder = (
-          await db.collection('orders').where('idContifico', '==', doc.id).get()
+          await db
+            .collection('orders')
+            .where('idContifico', '==', doc.id)
+            .limit(1)
+            .get()
         ).docs.map((document) => ({
           ref: document.ref,
         }));
@@ -281,6 +541,7 @@ export class ContificoService {
           await db
             .collection('serviciosFacturados')
             .where('idContifico', '==', doc.id)
+            .limit(1)
             .get()
         ).docs.map((document) => ({
           ref: document.ref,
@@ -290,14 +551,21 @@ export class ContificoService {
           let newData = {
             ...orderData,
           };
-          if (cliente && cliente.length > 0) {
+          if (clienteRef) {
             newData = {
               ...newData,
-              clientUserId: cliente[0].ref,
+              clientUserId: clienteRef,
             };
           }
           batch.update(existOrder[0].ref, newData);
         } else if (productsList.length > 0) {
+          const lastOrder = (
+            await db
+              .collection('orders')
+              .orderBy('orderDate', 'desc')
+              .limit(1)
+              .get()
+          ).docs;
           let newData = {
             ...orderData,
             transferProofImage: null,
@@ -315,12 +583,13 @@ export class ContificoService {
             completedDate: null,
             pickUpDate: null,
             productsList,
-            orderNumber: 0,
+            orderNumber:
+              lastOrder.length > 0 ? lastOrder[0].data().orderNumber + 1 : 1,
           };
-          if (cliente && cliente.length > 0) {
+          if (clienteRef) {
             newData = {
               ...newData,
-              clientUserId: cliente[0].ref,
+              clientUserId: clienteRef,
             };
           }
           const newDocRef = db.collection('orders').doc();
@@ -331,22 +600,22 @@ export class ContificoService {
           let newData = {
             ...orderData,
           };
-          if (cliente && cliente.length > 0) {
+          if (clienteRef) {
             newData = {
               ...newData,
-              clientUserId: cliente[0].ref,
+              clientUserId: clienteRef,
             };
           }
-          batch.update(existOrder[0].ref, newData);
+          batch.update(existService[0].ref, newData);
         } else if (serviceList.length > 0) {
           let newData = {
             ...orderData,
             serviceList,
           };
-          if (cliente && cliente.length > 0) {
+          if (clienteRef) {
             newData = {
               ...newData,
-              clientUserId: cliente[0].ref,
+              clientUserId: clienteRef,
             };
           }
           const newDocRef = db.collection('serviciosFacturados').doc();
@@ -357,6 +626,206 @@ export class ContificoService {
       await batch.commit();
 
       return `${docs.length} documentos guardados o actualizados correctamente`;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Crear categoría en Contifico.
+   * @param categoryName Nombre de la categoría a crear
+   * @param tipoCategoría Tipo de categoría (PROD, SERV)
+   */
+  async createCategory(
+    categoryName: string,
+    tipoCategoria: 'PROD' | 'SERV',
+  ): Promise<string> {
+    try {
+      const response = await axios({
+        method: 'POST',
+        url: `${this.configService.get<string>('CONTIFICO_URI')}/categoria/`,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+        },
+        data: {
+          nombre: categoryName,
+          tipo_producto: tipoCategoria,
+        },
+      });
+      return response.data.id;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Crear producto o servicio en Contifico.
+   * @param proServData Datos del producto o servicio a crear
+   */
+  async createProductOrService(proServData: any): Promise<string> {
+    try {
+      const response = await axios({
+        method: 'POST',
+        url: `${this.configService.get<string>('CONTIFICO_URI')}/producto/`,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+        },
+        data: {
+          tipo: proServData.tipo,
+          nombre: proServData.nombre,
+          descripcion: proServData.descripcion,
+          categoria_id: proServData.categoria,
+          minimo: 1,
+          pvp1: proServData.precio,
+          estado: proServData.estado ? 'A' : 'I',
+          codigo: proServData.sku,
+        },
+      });
+
+      if (response.status !== 201) {
+        throw new HttpException(
+          'Error al crear el producto/servicio',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      if (!proServData.stock || proServData.stock <= 0) {
+        return response.data.id; // Si no hay stock, no se registra movimiento de inventario
+      }
+      if (!proServData.precio || proServData.precio <= 0) {
+        throw new HttpException(
+          'El precio debe ser mayor a 0 para registrar el movimiento de inventario',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (!proServData.nombre) {
+        throw new HttpException(
+          'El nombre del producto/servicio es obligatorio para registrar el movimiento de inventario',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      await this.createInventoryMovement(
+        proServData.nombre,
+        'ING',
+        response.data.id,
+        proServData.stock,
+        proServData.precio,
+      );
+      // Si se crea el movimiento de inventario, retornamos el ID del producto/servicio
+      return response.data.id;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Crear movimiento de inventario en Contifico.
+   * @param inventoryMovementData Datos del movimiento de inventario a crear
+   */
+  async createInventoryMovement(
+    nombre: string,
+    tipo: string,
+    productoId: string,
+    cantidad: number,
+    precio: number,
+  ): Promise<void> {
+    try {
+      const responseBodega = await axios({
+        method: 'GET',
+        url: `${this.configService.get<string>('CONTIFICO_URI')}/bodega/`,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+        },
+      });
+      const bodegaId = responseBodega.data[0].id;
+      const date = new Date();
+
+      // Obtener la fecha en formato DD/MM/YYYY en zona horaria de Ecuador
+      const ecuadorDateString = date.toLocaleDateString('en-GB', {
+        timeZone: 'America/Guayaquil',
+      });
+      if (!bodegaId) {
+        throw new HttpException(
+          'No se encontró una bodega para registrar el movimiento de inventario',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const response = await axios({
+        method: 'POST',
+        url: `${this.configService.get<string>('CONTIFICO_URI')}/movimiento-inventario/`,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+        },
+        data: {
+          tipo,
+          bodega_id: bodegaId,
+          detalles: [
+            {
+              producto_id: productoId,
+              cantidad,
+              precio,
+            },
+          ],
+          fecha: ecuadorDateString,
+          descripcion: `Ingreso de inventario para el producto/servicio ${nombre}`,
+        },
+      });
+      if (response.status !== 201) {
+        throw new HttpException(
+          'Error al registrar el movimiento de inventario',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Crear cliente en Contifico.
+   * @param clientData Datos del cliente a crear
+   */
+  async createClient(clientData: any): Promise<string> {
+    try {
+      const response = await axios({
+        method: 'POST',
+        url: `${this.configService.get<string>('CONTIFICO_URI')}/persona/?pos=${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+        },
+        data: {
+          tipo: 'N',
+          cedula: clientData.cedula,
+          telefonos: clientData.telefono || null,
+          email: clientData.email,
+          direccion: clientData.direccion || null,
+          razon_social: clientData.razonSocial,
+          es_cliente: clientData.esCliente,
+          es_empleado: clientData.esEmpleado,
+          es_vendedor: clientData.esVendedor,
+          es_proveedor: false,
+        },
+      });
+      return response.data.id;
     } catch (error) {
       throw new HttpException(
         error.message || 'Error interno del servidor',
