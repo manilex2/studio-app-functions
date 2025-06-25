@@ -13,7 +13,7 @@ import * as path from 'path';
       useFactory: async (configService: ConfigService): Promise<App> => {
         const nodeEnv = configService.get('NODE_ENV');
         const serviceAccountPath = configService.get<string>(
-          'FIREBASE_SERVICE_ACCOUNT_PATH',
+          'SERVICE_ACCOUNT_PATH_FIREBASE',
         );
 
         console.log('NODE_ENV:', nodeEnv);
