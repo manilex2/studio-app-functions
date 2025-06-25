@@ -30,7 +30,7 @@ export class ContificoController {
     @Res() res: Response,
   ): Promise<void> {
     try {
-      const message = await this.contificoService.crearProductosContifico(body);
+      const message = await this.contificoService.createProductOrService(body);
       res.status(HttpStatus.OK).send({ message });
     } catch (error) {
       console.error('Error al crear productos en Contifico:', error);
