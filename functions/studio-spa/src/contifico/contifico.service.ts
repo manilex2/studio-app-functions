@@ -671,6 +671,43 @@ export class ContificoService {
    */
   async createProductOrService(proServData: any): Promise<string> {
     try {
+      if (!proServData.precio || proServData.precio <= 0) {
+        throw new HttpException(
+          'El precio debe ser mayor a 0 para registrar el movimiento de inventario',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (!proServData.tipo) {
+        throw new HttpException(
+          'El tipo de producto/servicio es obligatorio para registrar el movimiento de inventario',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (!proServData.categoria) {
+        throw new HttpException(
+          'La categoría del producto/servicio es obligatoria para registrar el movimiento de inventario',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (proServData.tipo !== 'PROD' && proServData.tipo !== 'SERV') {
+        throw new HttpException(
+          'El tipo de producto/servicio debe ser "PROD" o "SERV"',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (proServData.tipo === 'PROD' && !proServData.sku) {
+        throw new HttpException(
+          'El SKU del producto es obligatorio para registrar el movimiento de inventario',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (!proServData.nombre) {
+        throw new HttpException(
+          'El nombre del producto/servicio es obligatorio para registrar el movimiento de inventario',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const response = await axios({
         method: 'POST',
         url: `${this.configService.get<string>('CONTIFICO_URI')}/producto/`,
@@ -700,18 +737,6 @@ export class ContificoService {
       if (!proServData.stock || proServData.stock <= 0) {
         return response.data.id; // Si no hay stock, no se registra movimiento de inventario
       }
-      if (!proServData.precio || proServData.precio <= 0) {
-        throw new HttpException(
-          'El precio debe ser mayor a 0 para registrar el movimiento de inventario',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      if (!proServData.nombre) {
-        throw new HttpException(
-          'El nombre del producto/servicio es obligatorio para registrar el movimiento de inventario',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
 
       await this.createInventoryMovement(
         proServData.nombre,
@@ -732,7 +757,11 @@ export class ContificoService {
 
   /**
    * Crear movimiento de inventario en Contifico.
-   * @param inventoryMovementData Datos del movimiento de inventario a crear
+   * @param nombre Nombre del producto/servicio
+   * @param tipo Tipo de movimiento (ING, EGR)
+   * @param productoId ID del producto/servicio
+   * @param cantidad Cantidad del movimiento
+   * @param precio Precio del producto/servicio
    */
   async createInventoryMovement(
     nombre: string,

@@ -368,7 +368,7 @@ export class AuthService {
       await this.db
         .collection('users')
         .doc(userRecord.uid)
-        .update({ resetToken: null });
+        .update({ resetToken: null, firstLogin: true });
 
       await this.transporter.sendMail({
         to: email,
