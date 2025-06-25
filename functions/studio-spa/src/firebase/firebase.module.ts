@@ -17,7 +17,7 @@ import * as path from 'path';
         );
 
         console.log('NODE_ENV:', nodeEnv);
-        if (configService.get('NODE_ENV') === 'production') {
+        if (nodeEnv != 'development') {
           console.log(
             'Inicializando Firebase Admin para producción (autodetectando credenciales).',
           );

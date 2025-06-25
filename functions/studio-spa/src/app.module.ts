@@ -7,7 +7,9 @@ import { ContificoModule } from './contifico/contifico.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     AuthModule,
     ContificoModule,
   ],
