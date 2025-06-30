@@ -23,7 +23,7 @@ export interface Register {
   unidad?: string;
   nombreUnidad?: string;
   category?: string;
-  birthday?: Date;
+  birthday?: string;
   direccion?: string;
   medicamentos?: string;
   antecedentesPersonales?: string;
@@ -195,7 +195,7 @@ export class AuthService {
         unidad: unidadDoc ? unidadDoc.ref : null,
         nombreUnidad: nombreUnidad ?? unidadDoc.data().nombre_unidad,
         category: category ?? '',
-        birthday: birthday ? new Date(birthday) : null,
+        birthday: birthday ?? null,
         completedRegister: completedRegister ?? true,
         alergias: alergias ?? '',
         antecedentesFamiliares: antecedentesFamiliares ?? '',
