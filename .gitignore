@@ -108,3 +108,6 @@ node_modules/
 # Google Credentials
 serviceAccountKey.json
 serviceAccountKey-*.json
+
+# Excel files
+*.xlsx
