@@ -18,6 +18,21 @@
         "cp \"functions/studio-spa/package.json\" \"functions/studio-spa/dist\""
       ],
       "runtime": "nodejs20"
+    },
+    {
+      "source": "functions/cron",
+      "codebase": "cron-jobs",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ],
+      "runtime": "nodejs20"
     }
   ]
 }
