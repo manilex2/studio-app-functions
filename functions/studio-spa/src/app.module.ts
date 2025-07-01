@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { ContificoModule } from './contifico/contifico.module';
+import { ExcelModule } from './excel/excel.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { ContificoModule } from './contifico/contifico.module';
     }),
     AuthModule,
     ContificoModule,
+    ExcelModule,
   ],
   controllers: [AppController],
   providers: [AppService],
