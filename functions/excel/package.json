@@ -1,0 +1,17 @@
+{
+  "name": "excel-processor-standalone",
+  "version": "1.0.0",
+  "description": "Standalone script to process Excel files using xlsx and Firebase Admin SDK",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "firebase-admin": "^11.11.1",
+    "xlsx": "^0.18.5"
+  }
+}
