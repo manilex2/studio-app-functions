@@ -673,19 +673,19 @@ export class ContificoService {
     try {
       if (!proServData.precio || proServData.precio <= 0) {
         throw new HttpException(
-          'El precio debe ser mayor a 0 para registrar el movimiento de inventario',
+          'El precio debe ser mayor a 0 para registrar el producto/servicio',
           HttpStatus.BAD_REQUEST,
         );
       }
       if (!proServData.tipo) {
         throw new HttpException(
-          'El tipo de producto/servicio es obligatorio para registrar el movimiento de inventario',
+          'El tipo de producto/servicio es obligatorio para registrar el producto/servicio',
           HttpStatus.BAD_REQUEST,
         );
       }
       if (!proServData.categoria) {
         throw new HttpException(
-          'La categoría del producto/servicio es obligatoria para registrar el movimiento de inventario',
+          'La categoría del producto/servicio es obligatoria para registrar el producto/servicio',
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -697,13 +697,22 @@ export class ContificoService {
       }
       if (proServData.tipo === 'PROD' && !proServData.sku) {
         throw new HttpException(
-          'El SKU del producto es obligatorio para registrar el movimiento de inventario',
+          'El SKU del producto es obligatorio para registrar el producto',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (
+        proServData.tipo === 'PROD' &&
+        (!proServData.compra || proServData.compra <= 0)
+      ) {
+        throw new HttpException(
+          'El precio de compra debe ser mayor a 0 para registrar el movimiento de inventario',
           HttpStatus.BAD_REQUEST,
         );
       }
       if (!proServData.nombre) {
         throw new HttpException(
-          'El nombre del producto/servicio es obligatorio para registrar el movimiento de inventario',
+          'El nombre del producto/servicio es obligatorio para registrar el producto/servicio',
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -718,7 +727,7 @@ export class ContificoService {
         data: {
           tipo: proServData.tipo,
           nombre: proServData.nombre,
-          descripcion: proServData.descripcion,
+          descripcion: proServData.descripcion || '',
           categoria_id: proServData.categoria,
           minimo: 1,
           pvp1: proServData.precio,
@@ -739,11 +748,15 @@ export class ContificoService {
       }
 
       await this.createInventoryMovement(
-        proServData.nombre,
         'ING',
-        response.data.id,
-        proServData.stock,
-        proServData.precio,
+        [
+          {
+            id: response.data.id,
+            cantidad: proServData.stock,
+            precio: proServData.compra,
+          },
+        ],
+        'Ingreso de Inventario',
       );
       // Si se crea el movimiento de inventario, retornamos el ID del producto/servicio
       return response.data.id;
@@ -757,20 +770,39 @@ export class ContificoService {
 
   /**
    * Crear movimiento de inventario en Contifico.
-   * @param nombre Nombre del producto/servicio
+   *
    * @param tipo Tipo de movimiento (ING, EGR)
-   * @param productoId ID del producto/servicio
-   * @param cantidad Cantidad del movimiento
-   * @param precio Precio del producto/servicio
+   * @param productDetails Array de objetos con el ID del producto/servicio, cantidad y precio.
+   * @param descripcion Descripción del movimiento de inventario.
    */
   async createInventoryMovement(
-    nombre: string,
     tipo: string,
-    productoId: string,
-    cantidad: number,
-    precio: number,
+    productDetails: Array<{
+      id: string;
+      cantidad: number;
+      precio?: number;
+    }>,
+    descripcion: string,
   ): Promise<void> {
     try {
+      if (tipo === 'ING') {
+        for (const detail of productDetails) {
+          // Verificamos si 'precio' es undefined o null
+          if (detail.precio === undefined || detail.precio === null) {
+            throw new HttpException(
+              `El producto/servicio con ID ${detail.id} debe tener un precio para un movimiento de ingreso (ING).`,
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+          // También puedes añadir una validación para asegurar que el precio sea mayor o igual a 0, si es necesario
+          if (detail.precio <= 0) {
+            throw new HttpException(
+              `El precio del producto/servicio con ID ${detail.id} no puede ser negativo o 0.`,
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+        }
+      }
       const responseBodega = await axios({
         method: 'GET',
         url: `${this.configService.get<string>('CONTIFICO_URI')}/bodega/`,
@@ -779,19 +811,36 @@ export class ContificoService {
           Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
         },
       });
-      const bodegaId = responseBodega.data[0].id;
-      const date = new Date();
-
-      // Obtener la fecha en formato DD/MM/YYYY en zona horaria de Ecuador
-      const ecuadorDateString = date.toLocaleDateString('en-GB', {
-        timeZone: 'America/Guayaquil',
-      });
+      const bodegaId = responseBodega.data[0]?.id; // Usamos optional chaining por si no hay bodegas
       if (!bodegaId) {
         throw new HttpException(
           'No se encontró una bodega para registrar el movimiento de inventario',
           HttpStatus.BAD_REQUEST,
         );
       }
+
+      const date = new Date();
+
+      // Obtener la fecha en formato DD/MM/YYYY en zona horaria de Ecuador
+      const ecuadorDateString = date.toLocaleDateString('en-GB', {
+        timeZone: 'America/Guayaquil',
+      });
+
+      const detallesContifico = productDetails.map((detail) => {
+        const detalle: {
+          producto_id: string;
+          cantidad: number;
+          precio?: number;
+        } = {
+          producto_id: detail.id,
+          cantidad: detail.cantidad,
+        };
+        if (detail.precio !== undefined) {
+          // Puedes omitir '&& detail.precio !== null' si estás seguro de que null no vendrá o no importa
+          detalle.precio = detail.precio;
+        }
+        return detalle;
+      });
       const response = await axios({
         method: 'POST',
         url: `${this.configService.get<string>('CONTIFICO_URI')}/movimiento-inventario/`,
@@ -802,15 +851,9 @@ export class ContificoService {
         data: {
           tipo,
           bodega_id: bodegaId,
-          detalles: [
-            {
-              producto_id: productoId,
-              cantidad,
-              precio,
-            },
-          ],
+          detalles: detallesContifico,
           fecha: ecuadorDateString,
-          descripcion: `Ingreso de inventario para el producto/servicio ${nombre}`,
+          descripcion: descripcion || `Movimiento de inventario`,
         },
       });
       if (response.status !== 201) {
@@ -821,6 +864,12 @@ export class ContificoService {
       }
       return;
     } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new HttpException(
+          error.response.data.mensaje || 'Error al comunicarse con Contifico',
+          error.response.status,
+        );
+      }
       throw new HttpException(
         error.message || 'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,
