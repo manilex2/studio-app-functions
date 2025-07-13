@@ -14,14 +14,12 @@ setGlobalOptions({
 });
 
 // Define el Project ID y la Región una vez
-const PROJECT_ID = process.env.GCLOUD_PROJECT || admin.instanceId().app.options.projectId;
-const REGION = "us-central1";
-
+const URL_FUNCTIONS = process.env.URL_FUNCTIONS;
 // Define el nombre de tu función base que maneja las subrutas
 const BASE_HTTP_FUNCTION_NAME = "api"; // Asumiendo que tu función base se llama 'api'
 
 // Construye la URL base de la función
-const BASE_FUNCTION_URL = `https://${REGION}-${PROJECT_ID}.cloudfunctions.net/${BASE_HTTP_FUNCTION_NAME}`;
+const BASE_FUNCTION_URL = `https://${URL_FUNCTIONS}/${BASE_HTTP_FUNCTION_NAME}`;
 
 // Programar la función para Contifico
 exports.contificoDocs = onSchedule({
