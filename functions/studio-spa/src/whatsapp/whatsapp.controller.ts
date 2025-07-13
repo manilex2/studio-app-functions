@@ -1,7 +1,7 @@
 // whatsapp.controller.ts
 import {
   Controller,
-  Post,
+  Get,
   HttpCode,
   HttpStatus,
   Logger,
@@ -15,7 +15,7 @@ export class WhatsappController {
 
   constructor(private readonly whatsappService: WhatsappService) {}
 
-  @Post('notify-two-days-before')
+  @Get('notify-two-days-before')
   @HttpCode(HttpStatus.OK) // Se devuelve 200 OK si la operación de inicio fue exitosa
   async notifyTwoDaysBefore() {
     try {
@@ -45,7 +45,7 @@ export class WhatsappController {
     }
   }
 
-  @Post('notify-same-day')
+  @Get('notify-same-day')
   @HttpCode(HttpStatus.OK)
   async notifySameDay() {
     try {
@@ -73,7 +73,7 @@ export class WhatsappController {
   }
 
   // Si decides mantener un endpoint de "status", asegúrate de que sea informativo
-  @Post('status') // Cambiado a POST si solo quieres que se dispare, no que se "obtenga" el estado.
+  @Get('status') // Cambiado a POST si solo quieres que se dispare, no que se "obtenga" el estado.
   @HttpCode(HttpStatus.OK)
   getStatus(): { status: string; message: string } {
     return {
