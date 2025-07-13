@@ -17,10 +17,6 @@ setGlobalOptions({
 });
 
 const expressServer = express();
-
-/* expressServer.use(express.json());
-expressServer.use(express.urlencoded({ extended: true })); */
-
 let nestApp: INestApplication;
 
 const createFunction = async (expressInstance: Express) => {

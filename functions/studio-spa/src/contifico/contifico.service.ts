@@ -3,9 +3,114 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { Filter, getFirestore, Timestamp } from 'firebase-admin/firestore';
 
+// --- Interfaces para la estructura de Contifico ---
+interface ContificoPersona {
+  ruc?: string;
+  cedula: string;
+  razon_social: string;
+  telefonos?: string;
+  direccion?: string;
+  tipo: 'N' | 'J' | 'I' | 'P'; // N:Natural, J:Juridica, I:SinId, P:Placa
+  email?: string;
+  es_extranjero?: boolean;
+}
+
+interface ContificoDocumentDetail {
+  producto_id: string;
+  cantidad: number;
+  precio: number; // Precio unitario del producto en el detalle
+  porcentaje_iva?: number; // 0, 12, null
+  porcentaje_descuento: number;
+  base_cero: number;
+  base_gravable: number;
+  base_no_gravable: number;
+  porcentaje_ice?: number;
+  valor_ice?: number;
+}
+
+interface ContificoCobro {
+  forma_cobro: 'EF' | 'CQ' | 'TC' | 'TRA'; // Tipos de cobro
+  monto: number;
+  numero_cheque?: string; // Solo para CQ
+  tipo_ping?: 'D' | 'M' | 'E' | 'P' | 'A'; // Solo para TC
+}
+
+// --- Interfaces para la entrada de tu NestJS ---
+interface DocumentDetailDto {
+  producto_id: string;
+  cantidad: number;
+  precio: number;
+  porcentaje_iva?: number;
+  porcentaje_descuento?: number; // Ahora opcional en la entrada DTO, por defecto 0
+  base_cero?: number; // Calculados o proporcionados
+  base_gravable?: number;
+  base_no_gravable?: number;
+  porcentaje_ice?: number;
+  valor_ice?: number;
+}
+
+export interface CreateElectronicDocumentDto {
+  cliente_id_contifico: string; // El ID del cliente en Contifico
+  tipo_documento: 'FAC' | 'NVT' | 'NCR' | 'NDA' | 'RET' | 'LQC'; // Tipos de documento
+  documento_numero: string; // Número del documento (ej. 001-001-000000001)
+  descripcion?: string;
+  // Totales, ahora obligatorios en la entrada para el payload
+  subtotal_0: number;
+  subtotal_12: number;
+  iva: number;
+  ice: number;
+  servicio?: number;
+  total: number;
+  adicional1?: string;
+  adicional2?: string;
+  detalles: DocumentDetailDto[];
+  cobros: ContificoCobro[]; // Debe ser un array con al menos un cobro
+  // El vendedor se manejará internamente si es necesario, o se puede agregar al DTO si lo pasas
+  vendedor_id?: string; // Opcional, si tienes un ID de vendedor de Contifico
+}
+
 @Injectable()
 export class ContificoService {
   constructor(private readonly configService: ConfigService) {}
+
+  /**
+   * Obtiene los datos de una persona (cliente/proveedor) de Contifico por su ID.
+   * @param personaId El ID de la persona en Contifico.
+   * @returns Los datos de la persona o null si no se encuentra.
+   */
+  async getPersonaById(personaId: string): Promise<ContificoPersona | null> {
+    try {
+      const response = await axios({
+        method: 'GET',
+        url: `${this.configService.get<string>('CONTIFICO_URI')}/persona/${personaId}/`,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
+        },
+      });
+      if (response.status === 200) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      if (
+        axios.isAxiosError(error) &&
+        error.response &&
+        error.response.status === 404
+      ) {
+        // La persona no fue encontrada
+        return null;
+      }
+      console.error(
+        `Error al obtener persona con ID ${personaId}:`,
+        error.message,
+      );
+      throw new HttpException(
+        error.message || 'Error interno del servidor al obtener persona',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   /**
    * Convertir fecha de string DD/MM/YYYY a Date.
@@ -37,7 +142,7 @@ export class ContificoService {
         method: 'GET',
         url: `${this.configService.get<string>('CONTIFICO_URI')}/registro/documento/?tipo_registro=CLI&fecha_emision=${ecuadorDateString}`,
         headers: {
-          Authorization: this.configService.get<string>('CONTIFICO_AUTH_TOKEN'),
+          Authorization: this.configService.get<string>('CONTIFICO_API_KEY'),
         },
       })
         .then((response) => {
@@ -649,7 +754,7 @@ export class ContificoService {
         url: `${this.configService.get<string>('CONTIFICO_URI')}/categoria/`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
         },
         data: {
           nombre: categoryName,
@@ -722,7 +827,7 @@ export class ContificoService {
         url: `${this.configService.get<string>('CONTIFICO_URI')}/producto/`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
         },
         data: {
           tipo: proServData.tipo,
@@ -808,7 +913,7 @@ export class ContificoService {
         url: `${this.configService.get<string>('CONTIFICO_URI')}/bodega/`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
         },
       });
       const bodegaId = responseBodega.data[0]?.id; // Usamos optional chaining por si no hay bodegas
@@ -846,7 +951,7 @@ export class ContificoService {
         url: `${this.configService.get<string>('CONTIFICO_URI')}/movimiento-inventario/`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
         },
         data: {
           tipo,
@@ -885,10 +990,10 @@ export class ContificoService {
     try {
       const response = await axios({
         method: 'POST',
-        url: `${this.configService.get<string>('CONTIFICO_URI')}/persona/?pos=${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+        url: `${this.configService.get<string>('CONTIFICO_URI')}/persona/?pos=${this.configService.get<string>('CONTIFICO_API_KEY')}`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
         },
         data: {
           tipo: 'N',
@@ -905,6 +1010,208 @@ export class ContificoService {
       });
       return response.data.id;
     } catch (error) {
+      throw new HttpException(
+        error.message || 'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Crea un documento electrónico en Contifico con la estructura completa requerida.
+   * Asume que los cálculos de subtotal_0, subtotal_12, iva, ice y total vienen pre-calculados
+   * en el DTO de entrada.
+   * @param documentData Datos completos del documento electrónico a crear.
+   * @returns El ID del documento creado en Contifico.
+   */
+  async createElectronicDocument(
+    documentData: CreateElectronicDocumentDto,
+  ): Promise<string> {
+    try {
+      // 1. Validaciones iniciales
+      if (!documentData.cliente_id_contifico) {
+        throw new HttpException(
+          'El ID del cliente de Contifico es obligatorio.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (!documentData.tipo_documento) {
+        throw new HttpException(
+          'El tipo de documento es obligatorio (ej. FAC para factura).',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (!documentData.documento_numero) {
+        throw new HttpException(
+          'El número de documento es obligatorio (ej. 001-001-000000001).',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      // Validar formato del número de documento
+      const docNumberRegex = /^[0-9]{3}-[0-9]{3}-[0-9]{1,9}$/;
+      if (!docNumberRegex.test(documentData.documento_numero)) {
+        throw new HttpException(
+          'El número de documento no cumple el formato requerido (ej. 001-001-000000001).',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (!documentData.detalles || documentData.detalles.length === 0) {
+        throw new HttpException(
+          'El documento debe contener al menos un detalle de producto/servicio.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (!documentData.cobros || documentData.cobros.length === 0) {
+        throw new HttpException(
+          'El documento debe contener al menos un cobro.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Validar que los totales obligatorios estén presentes
+      const requiredTotals = [
+        'subtotal_0',
+        'subtotal_12',
+        'iva',
+        'ice',
+        'total',
+      ];
+      for (const field of requiredTotals) {
+        if (documentData[field] === undefined || documentData[field] === null) {
+          throw new HttpException(
+            `El campo de total '${field}' es obligatorio.`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+
+      // 2. Obtener datos del cliente de Contifico
+      const clienteContifico = await this.getPersonaById(
+        documentData.cliente_id_contifico,
+      );
+      if (!clienteContifico) {
+        throw new HttpException(
+          `Cliente con ID ${documentData.cliente_id_contifico} no encontrado en Contifico.`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // Opcional: Obtener datos del vendedor si se proporciona un ID
+      let vendedorContifico: ContificoPersona | null = null;
+      if (documentData.vendedor_id) {
+        vendedorContifico = await this.getPersonaById(documentData.vendedor_id);
+        if (!vendedorContifico) {
+          console.warn(
+            `Vendedor con ID ${documentData.vendedor_id} no encontrado. El documento se creará sin información de vendedor.`,
+          );
+        }
+      }
+
+      // 3. Preparar los detalles para Contifico
+      const detallesParaContifico: ContificoDocumentDetail[] =
+        documentData.detalles.map((d) => ({
+          producto_id: d.producto_id,
+          cantidad: d.cantidad,
+          precio: d.precio,
+          porcentaje_iva: d.porcentaje_iva ?? null, // Usar null si es undefined
+          porcentaje_descuento: d.porcentaje_descuento ?? 0, // Por defecto 0
+          base_cero: d.base_cero ?? 0, // Asumimos 0 si no se proporciona
+          base_gravable: d.base_gravable ?? 0, // Asumimos 0 si no se proporciona
+          base_no_gravable: d.base_no_gravable ?? 0, // Asumimos 0 si no se proporciona
+          porcentaje_ice: d.porcentaje_ice ?? 0,
+          valor_ice: d.valor_ice ?? 0,
+        }));
+
+      // 4. Preparar la fecha de emisión
+      const fechaEmision = new Date().toLocaleDateString('en-GB', {
+        timeZone: 'America/Guayaquil',
+      }); // Formato DD/MM/YYYY
+
+      // 5. Construir el payload completo para Contifico
+      const payload = {
+        pos: this.configService.get<string>('CONTIFICO_AUTH_TOKEN'), // API Token del POS
+        fecha_emision: fechaEmision,
+        tipo_documento: documentData.tipo_documento,
+        documento: documentData.documento_numero,
+        estado: 'C', // Siempre 'C' = Cobrado según tu indicación
+        electronico: true,
+        autorizacion: '', // Siempre en blanco para documentos electrónicos
+        caja_id: null, // Ignorado según tu indicación
+        cliente: {
+          ruc: clienteContifico.ruc || clienteContifico.cedula, // Usar RUC si existe, sino cédula
+          cedula: clienteContifico.cedula,
+          razon_social: clienteContifico.razon_social,
+          telefonos: clienteContifico.telefonos || null,
+          direccion: clienteContifico.direccion || null,
+          tipo: clienteContifico.tipo,
+          email: clienteContifico.email || null,
+          es_extranjero: clienteContifico.es_extranjero ?? false, // Por defecto false
+        },
+        vendedor: vendedorContifico
+          ? {
+              ruc: vendedorContifico.ruc || vendedorContifico.cedula,
+              cedula: vendedorContifico.cedula,
+              razon_social: vendedorContifico.razon_social,
+              telefonos: vendedorContifico.telefonos || null,
+              direccion: vendedorContifico.direccion || null,
+              tipo: vendedorContifico.tipo,
+              email: vendedorContifico.email || null,
+              es_extranjero: vendedorContifico.es_extranjero ?? false,
+            }
+          : null, // Enviar null si no hay vendedor
+        descripcion:
+          documentData.descripcion ||
+          `Documento ${documentData.tipo_documento} #${documentData.documento_numero}`,
+        subtotal_0: documentData.subtotal_0,
+        subtotal_12: documentData.subtotal_12,
+        iva: documentData.iva,
+        ice: documentData.ice,
+        servicio: documentData.servicio ?? 0.0, // Por defecto 0
+        total: documentData.total,
+        adicional1: documentData.adicional1 || '',
+        adicional2: documentData.adicional2 || '',
+        detalles: detallesParaContifico,
+        cobros: documentData.cobros, // Array de cobros
+      };
+
+      // 6. Realizar la solicitud HTTP a la API de Contifico
+      const response = await axios({
+        method: 'POST',
+        url: `${this.configService.get<string>('CONTIFICO_URI')}/documento/`,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+        },
+        data: payload,
+      });
+
+      // 7. Manejo de la respuesta
+      if (response.status === 201) {
+        return response.data.id; // Retorna el ID del documento creado
+      } else {
+        throw new HttpException(
+          response.data.mensaje ||
+            'Error al crear el documento electrónico en Contifico.',
+          response.status,
+        );
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        console.error(
+          'Error al crear documento electrónico en Contifico:',
+          error.response.data,
+        );
+        throw new HttpException(
+          error.response.data.mensaje ||
+            error.response.data.error ||
+            'Error al comunicarse con Contifico',
+          error.response.status,
+        );
+      }
+      console.error(
+        'Error inesperado al crear documento electrónico:',
+        error.message,
+      );
       throw new HttpException(
         error.message || 'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,

@@ -1,7 +1,7 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, Filter } from 'firebase-admin/firestore';
+import { getFirestore, Filter, FieldValue } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { createTransport } from 'nodemailer';
 import { genSalt } from 'bcrypt';
@@ -29,10 +29,12 @@ export interface Register {
   antecedentesPersonales?: string;
   alergias?: string;
   antecedentesFamiliares?: string;
+  idContifico?: string;
 }
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name); // Instanciar el logger
   constructor(private readonly configService: ConfigService) {}
 
   private auth = getAuth();
@@ -96,6 +98,7 @@ export class AuthService {
       antecedentesPersonales,
       direccion,
       medicamentos,
+      idContifico,
     } = body;
 
     try {
@@ -202,6 +205,7 @@ export class AuthService {
         antecedentesPersonales: antecedentesPersonales ?? '',
         direccion: direccion ?? '',
         medicamentos: medicamentos ?? '',
+        idContifico: idContifico ?? '',
       };
 
       await newUserRef.set(usuario);
@@ -396,6 +400,51 @@ export class AuthService {
       }
       throw new HttpException(
         'Error al procesar la solicitud',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async deleteAccount(email: string): Promise<void> {
+    try {
+      const userRecord = await this.auth.getUserByEmail(email);
+
+      const userDoc = await this.db
+        .collection('users')
+        .doc(userRecord.uid)
+        .get();
+      const userData = userDoc.data();
+
+      // Verificar si los datos del usuario existen antes de intentar copiarlos
+      if (userData) {
+        await this.db
+          .collection('usersDeleted')
+          .doc(userRecord.uid)
+          .set({
+            ...userData,
+            deletedAt: FieldValue.serverTimestamp(),
+          }); // Usar .set() con merge:true o sin merge para crear/sobrescribir y añadir timestamp
+      } else {
+        // Esto es un caso raro si getUserByEmail encontró un usuario pero no en la colección 'users'
+        this.logger.warn(
+          `Usuario ${userRecord.uid} encontrado en Auth pero no en la colección 'users'.`,
+        );
+      }
+
+      await this.auth.deleteUser(userRecord.uid);
+    } catch (error) {
+      if (error.code === 'auth/user-not-found') {
+        throw new HttpException('Usuario no encontrado.', HttpStatus.NOT_FOUND);
+      }
+      // Registrar el error original para depuración
+      this.logger.error(
+        `Error en el servicio deleteAccount: ${error.message}`,
+        error.stack,
+      );
+
+      // Lanzar una excepción genérica para el cliente, pero con el error registrado internamente
+      throw new HttpException(
+        'Error al procesar la solicitud de eliminación de cuenta.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

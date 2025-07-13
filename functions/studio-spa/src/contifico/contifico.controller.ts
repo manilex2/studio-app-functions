@@ -23,7 +23,7 @@ export class ContificoController {
     }
   }
 
-  @Post('contifico/createCategory')
+  @Post('createCategory')
   @Header('Content-Type', 'application/json')
   async crearCategoriaContifico(
     @Body() body: any,
@@ -47,7 +47,7 @@ export class ContificoController {
     }
   }
 
-  @Post('contifico/createProdServ')
+  @Post('createProdServ')
   @Header('Content-Type', 'application/json')
   async crearProdServContifico(
     @Body() body: any,
@@ -68,7 +68,7 @@ export class ContificoController {
     }
   }
 
-  @Post('contifico/createMovInv')
+  @Post('createMovInv')
   @Header('Content-Type', 'application/json')
   async crearMovInventario(
     @Body() body: any,
@@ -96,7 +96,7 @@ export class ContificoController {
     }
   }
 
-  @Post('contifico/createUser')
+  @Post('createUser')
   @Header('Content-Type', 'application/json')
   async crearUsuarioContifico(
     @Body() body: any,
@@ -104,6 +104,28 @@ export class ContificoController {
   ): Promise<void> {
     try {
       const message = await this.contificoService.createClient(body);
+      res.status(HttpStatus.OK).send({ message });
+    } catch (error) {
+      console.error('Error al crear producto/servicio en Contifico:', error);
+      if (error instanceof HttpException) {
+        res.status(error.getStatus()).send({ message: error.message });
+      } else {
+        res
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .send({ message: 'Error interno del servidor' });
+      }
+    }
+  }
+
+  @Post('createDoc')
+  @Header('Content-Type', 'application/json')
+  async crearDocContifico(
+    @Body() body: any,
+    @Res() res: Response,
+  ): Promise<void> {
+    try {
+      const message =
+        await this.contificoService.createElectronicDocument(body);
       res.status(HttpStatus.OK).send({ message });
     } catch (error) {
       console.error('Error al crear producto/servicio en Contifico:', error);
