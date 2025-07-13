@@ -260,7 +260,7 @@ export class AuthService {
       await auth.updateUser(uid, { password: newPassword });
       return `Contraseña cambiada exitosamente para el usuario: ${email}`;
     } catch (error) {
-      console.error('Error al cambiar la contraseña: ', error);
+      this.logger.error('Error al cambiar la contraseña: ', error);
 
       const errorMessage = error.message || 'Ocurrió un error desconocido';
 

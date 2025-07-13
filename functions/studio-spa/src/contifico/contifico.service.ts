@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { Filter, getFirestore, Timestamp } from 'firebase-admin/firestore';
@@ -73,6 +73,8 @@ export interface CreateElectronicDocumentDto {
 export class ContificoService {
   constructor(private readonly configService: ConfigService) {}
 
+  private readonly logger = new Logger(ContificoService.name);
+
   /**
    * Obtiene los datos de una persona (cliente/proveedor) de Contifico por su ID.
    * @param personaId El ID de la persona en Contifico.
@@ -101,7 +103,7 @@ export class ContificoService {
         // La persona no fue encontrada
         return null;
       }
-      console.error(
+      this.logger.error(
         `Error al obtener persona con ID ${personaId}:`,
         error.message,
       );
@@ -149,7 +151,7 @@ export class ContificoService {
           docs = response.data;
         })
         .catch((err) => {
-          console.error(err);
+          this.logger.error(err);
           throw new HttpException(
             'Error al obtener documentos de Contifico',
             HttpStatus.INTERNAL_SERVER_ERROR,
@@ -1101,7 +1103,7 @@ export class ContificoService {
       if (documentData.vendedor_id) {
         vendedorContifico = await this.getPersonaById(documentData.vendedor_id);
         if (!vendedorContifico) {
-          console.warn(
+          this.logger.warn(
             `Vendedor con ID ${documentData.vendedor_id} no encontrado. El documento se creará sin información de vendedor.`,
           );
         }
@@ -1197,7 +1199,7 @@ export class ContificoService {
       }
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        console.error(
+        this.logger.error(
           'Error al crear documento electrónico en Contifico:',
           error.response.data,
         );
@@ -1208,7 +1210,7 @@ export class ContificoService {
           error.response.status,
         );
       }
-      console.error(
+      this.logger.error(
         'Error inesperado al crear documento electrónico:',
         error.message,
       );

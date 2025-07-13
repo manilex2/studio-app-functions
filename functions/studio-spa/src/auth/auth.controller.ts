@@ -26,37 +26,49 @@ export class AuthController {
     const { uid, clave, email } = req.body;
 
     try {
+      this.logger.log(
+        'Recibida solicitud para cambiar la contraseña del usuario.',
+      );
       const message = await this.authService.changePassword(uid, clave, email);
       return res.status(HttpStatus.OK).send({ message });
     } catch (error) {
+      this.logger.error(
+        `Error al cambiar la contraseña: ${error.message}`,
+        error.stack,
+      );
       if (error instanceof HttpException) {
-        return res.status(error.getStatus()).send({ message: error.message });
+        res.status(error.getStatus()).send({ message: error.message });
+      } else {
+        res
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .send({ message: 'Error interno del servidor' });
       }
-
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        message: 'Error interno del servidor',
-        error: error.message,
-      });
     }
   }
   @Post('signup')
   @Header('Content-Type', 'application/json')
   async singUp(@Body() body: Register, @Res() res: Response) {
     try {
+      this.logger.log(
+        'Recibida solicitud para registrar al usuario en la plataforma.',
+      );
       await this.authService.singUp(body);
       return res.status(HttpStatus.CREATED).send({
         message:
           'Usuario creado exitosamente. Se le envió una contraseña provisional a su email.',
       });
     } catch (error) {
+      this.logger.error(
+        `Error al crear al usuario: ${error.message}`,
+        error.stack,
+      );
       if (error instanceof HttpException) {
-        return res.status(error.getStatus()).send({ message: error.message });
+        res.status(error.getStatus()).send({ message: error.message });
+      } else {
+        res
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .send({ message: 'Error interno del servidor' });
       }
-
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        message: 'Error interno del servidor',
-        error: error.message,
-      });
     }
   }
 
@@ -64,19 +76,25 @@ export class AuthController {
   @Header('Content-Type', 'application/json')
   async resetPassword(@Res() res: Response, @Body('email') email: string) {
     try {
+      this.logger.log(
+        'Recibida solicitud para resetear la contraseña del usuario.',
+      );
       await this.authService.resetPassword(email);
       return res.status(HttpStatus.OK).send({
         message: 'Se ha enviado un correo para restablecer la contraseña',
       });
     } catch (error) {
+      this.logger.error(
+        `Error al reestrablecer la contraseña: ${error.message}`,
+        error.stack,
+      );
       if (error instanceof HttpException) {
-        return res.status(error.getStatus()).send({ message: error.message });
+        res.status(error.getStatus()).send({ message: error.message });
+      } else {
+        res
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .send({ message: 'Error interno del servidor' });
       }
-
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        message: 'Error interno del servidor',
-        error: error.message,
-      });
     }
   }
 
@@ -88,20 +106,26 @@ export class AuthController {
     @Body('token') token: string,
   ) {
     try {
+      this.logger.log(
+        'Recibida solicitud para confirmar el reseteo de la contraseña del usuario.',
+      );
       await this.authService.confirmReset(email, token);
       return res.status(HttpStatus.OK).send({
         message:
           'La contraseña ha sido restablecida y enviada al correo electrónico',
       });
     } catch (error) {
+      this.logger.error(
+        `Error al confirmar el reestrablecimiento de la contraseña: ${error.message}`,
+        error.stack,
+      );
       if (error instanceof HttpException) {
-        return res.status(error.getStatus()).send({ message: error.message });
+        res.status(error.getStatus()).send({ message: error.message });
+      } else {
+        res
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .send({ message: 'Error interno del servidor' });
       }
-
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        message: 'Error interno del servidor',
-        error: error.message,
-      });
     }
   }
 
@@ -109,24 +133,25 @@ export class AuthController {
   @Header('Content-Type', 'application/json')
   async deleteAccount(@Res() res: Response, @Body('email') email: string) {
     try {
+      this.logger.log(
+        'Recibida solicitud para eliminar al usuario de la plataforma.',
+      );
       await this.authService.deleteAccount(email);
       return res.status(HttpStatus.OK).json({
         message: 'La cuenta ha sido eliminada exitosamente.', // Mensaje corregido
       });
     } catch (error) {
-      if (error instanceof HttpException) {
-        return res.status(error.getStatus()).json({ message: error.message }); // Usando .json() consistentemente
-      }
-
-      // Registrar el error original para depuración
       this.logger.error(
-        `Error interno al eliminar la cuenta: ${error.message}`,
+        `Error al eliminar al usuario: ${error.message}`,
         error.stack,
       );
-
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        message: 'Error interno del servidor al procesar la solicitud.', // Mensaje más específico
-      });
+      if (error instanceof HttpException) {
+        res.status(error.getStatus()).send({ message: error.message });
+      } else {
+        res
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .send({ message: 'Error interno del servidor' });
+      }
     }
   }
 }
