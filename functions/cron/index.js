@@ -12,14 +12,8 @@ setGlobalOptions({
   timeoutSeconds: 540,
   memory: "1GiB",
 });
-
-// Define el Project ID y la Región una vez
-const URL_FUNCTIONS = process.env.URL_FUNCTIONS;
-// Define el nombre de tu función base que maneja las subrutas
-const BASE_HTTP_FUNCTION_NAME = "api"; // Asumiendo que tu función base se llama 'api'
-
 // Construye la URL base de la función
-const BASE_FUNCTION_URL = `${URL_FUNCTIONS}/${BASE_HTTP_FUNCTION_NAME}`;
+const BASE_FUNCTION_URL = process.env.URL_FUNCTIONS;
 
 // Programar la función para Contifico
 exports.contificoDocs = onSchedule({
