@@ -12,8 +12,9 @@ setGlobalOptions({
   timeoutSeconds: 540,
   memory: "1GiB",
 });
-// Construye la URL base de la función
-const BASE_FUNCTION_URL = process.env.URL_FUNCTIONS;
+const PROJECT_ID = process.env.GCLOUD_PROJECT; // Asegúrate de reemplazar con tu ID de proyecto real
+const REGION = "us-central1";
+const BASE_FUNCTION_URL = `https://${REGION}-${PROJECT_ID}.cloudfunctions.net/api`;
 
 // Programar la función para Contifico
 exports.contificoDocs = onSchedule({
