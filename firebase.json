@@ -11,11 +11,11 @@
         "*.local"
       ],
       "predeploy": [
-        "cp \"functions/studio-spa/package.json\" \"functions/studio-spa/dist\"",
+        "copy \"functions/studio-spa/package.json\" \"functions/studio-spa/dist\"",
         "npm --prefix \"functions/studio-spa\" run lint",
         "npm --prefix \"functions/studio-spa\" run build",
-        "cp \"functions/studio-spa/.env\" \"functions/studio-spa/dist\"",
-        "cp \"functions/studio-spa/package.json\" \"functions/studio-spa/dist\""
+        "copy \"functions/studio-spa/.env\" \"functions/studio-spa/dist\"",
+        "copy \"functions/studio-spa/package.json\" \"functions/studio-spa/dist\""
       ],
       "runtime": "nodejs20"
     },
