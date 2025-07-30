@@ -1,0 +1,856 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "locales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mainLocal",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "nombre_local",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "monthlyStatistics",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "year",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "month",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "serviceCount",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "totalValue",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "categories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "Mostrar",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "Categoria",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "servicios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "featured",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "servicios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "RefCategoria",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "enable",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "categoriesProducts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mostrar",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "categoryName",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "productos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "enable",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "featured",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "refCategory",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "productos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "enable",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "featured",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "locales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mostrar_local",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "servicios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "RefCategoria",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "productos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "enable",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "refCategory",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "locales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mainLocal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "mostrar_local",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre_local",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "servicios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "enable",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "servicios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "enable",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ngrams",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "nombre",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "productos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "enable",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "productos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "enable",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ngrams",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "horarios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "almuerzo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "entrada",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "horarios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "statusEspecial",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "locales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mostrar_local",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre_local",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "unidad",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "enable",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "display_name",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "notas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clientRef",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "registerDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "examenes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clientRef",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "productos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "refCategory",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "foRecipies",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "locales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mostrar_local",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "mainLocal",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "nombre_local",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "rolName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ngrams",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "created_time",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "rolName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_time",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "display_name",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "close",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isCancelled",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startDateTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "locales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mainLocal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nombre_local",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "unidad",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rolName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "display_name",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clientUserId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "orderDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "atenciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "asesorRef",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "close",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startDateTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "atenciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "close",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "asesorRef",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "shippingMethod",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "paymentMethods",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "orderStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "orderDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "productos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "enable",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "erased",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "categories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "Mostrar",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "unidad",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "Categoria",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "unidad",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "cargo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "servCateg",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "unidad",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rolName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "servCateg",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tratamientos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clientRef",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "activo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaInicio",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "recetas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cliendId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "registerDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clientUserId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isCancelled",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "close",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "atenciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clientRef",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaRegistro",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "atenciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clientRef",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "close",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "endDateTimeEstimated",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "atenciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tratamientoRef",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sessionNumber",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "asesorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "unidad",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startDateTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "unidad",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startDateTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "phone_number",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "email",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cedula",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "email",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "asesorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startDateTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "atenciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "asesorRef",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startDateTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "locales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mostrar_local",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "mainLocal",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "atenciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clientRef",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaRegistro",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "atenciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clientRef",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "endDateTimeEstimated",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ]
+}

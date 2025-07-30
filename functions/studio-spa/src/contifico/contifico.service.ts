@@ -50,6 +50,7 @@ interface DocumentDetailDto {
 }
 
 export interface CreateElectronicDocumentDto {
+  pos: string; //Codigo POS del movimiento de inventario
   cliente_id_contifico: string; // El ID del cliente en Contifico
   tipo_documento: 'FAC' | 'NVT' | 'NCR' | 'NDA' | 'RET' | 'LQC'; // Tipos de documento
   documento_numero: string; // Número del documento (ej. 001-001-000000001)
@@ -87,7 +88,7 @@ export class ContificoService {
         url: `${this.configService.get<string>('CONTIFICO_URI')}/persona/${personaId}/`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
+          Authorization: this.configService.get<string>('CONTIFICO_API_KEY'),
         },
       });
       if (response.status === 200) {
@@ -256,6 +257,8 @@ export class ContificoService {
           ventasGeneralesData = ventasGeneralesDocs[0].data();
         }
 
+        this.logger.debug(`Pase ventasGeneralesDocs`);
+
         const separateStrings = doc.documento.split('-');
         const numeroEstablecimiento = separateStrings[0];
 
@@ -308,13 +311,17 @@ export class ContificoService {
           }
         }
 
-        const asesorDocs = (
-          await db
-            .collection('users')
-            .where('cedula', '==', doc.vendedor.cedula)
-            .limit(1)
-            .get()
-        ).docs;
+        this.logger.debug(`Pase ventasPorStoreDocs`);
+
+        const asesorDocs = doc.vendedor
+          ? (
+              await db
+                .collection('users')
+                .where('cedula', '==', doc.vendedor.cedula)
+                .limit(1)
+                .get()
+            ).docs
+          : [];
 
         const asesorRef = asesorDocs.length > 0 ? asesorDocs[0].ref : null;
 
@@ -358,10 +365,12 @@ export class ContificoService {
           }
         }
 
+        this.logger.debug(`Pase ventasPorAsesorDocs`);
+
         const clientDocs = (
           await db
             .collection('users')
-            .where('cedula', '==', doc.cliente.cedula)
+            .where('cedula', '==', doc.persona.cedula)
             .limit(1)
             .get()
         ).docs;
@@ -407,6 +416,8 @@ export class ContificoService {
             ventasPorClienteData = ventasPorClienteDocs[0].data();
           }
         }
+
+        this.logger.debug(`Pase ventasPorClienteDocs`);
 
         for (const detalle of doc.detalles) {
           const productDocs = (
@@ -475,6 +486,8 @@ export class ContificoService {
                 lastUpdate: Timestamp.fromDate(date),
               });
             }
+
+            this.logger.debug(`Pase ventasPorProductoDocs`);
 
             continue;
           }
@@ -546,6 +559,8 @@ export class ContificoService {
                 lastUpdate: Timestamp.fromDate(date),
               });
             }
+
+            this.logger.debug(`Pase ventasPorServicioDoc`);
           }
         }
 
@@ -627,7 +642,7 @@ export class ContificoService {
         const clienteDocs = (
           await db
             .collection('users')
-            .where('cedula', '==', doc.cliente.cedula)
+            .where('cedula', '==', doc.persona.cedula)
             .limit(1)
             .get()
         ).docs;
@@ -756,7 +771,7 @@ export class ContificoService {
         url: `${this.configService.get<string>('CONTIFICO_URI')}/categoria/`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
+          Authorization: this.configService.get<string>('CONTIFICO_API_KEY'),
         },
         data: {
           nombre: categoryName,
@@ -765,6 +780,7 @@ export class ContificoService {
       });
       return response.data.id;
     } catch (error) {
+      console.log(error);
       throw new HttpException(
         error.message || 'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -776,7 +792,7 @@ export class ContificoService {
    * Crear producto o servicio en Contifico.
    * @param proServData Datos del producto o servicio a crear
    */
-  async createProductOrService(proServData: any): Promise<string> {
+  async createProductOrService(proServData: any): Promise<object> {
     try {
       if (!proServData.precio || proServData.precio <= 0) {
         throw new HttpException(
@@ -796,20 +812,20 @@ export class ContificoService {
           HttpStatus.BAD_REQUEST,
         );
       }
-      if (proServData.tipo !== 'PROD' && proServData.tipo !== 'SERV') {
+      if (proServData.tipo !== 'PRO' && proServData.tipo !== 'SER') {
         throw new HttpException(
-          'El tipo de producto/servicio debe ser "PROD" o "SERV"',
+          'El tipo de producto/servicio debe ser "PRO" o "SER"',
           HttpStatus.BAD_REQUEST,
         );
       }
-      if (proServData.tipo === 'PROD' && !proServData.sku) {
+      if (proServData.tipo === 'PRO' && !proServData.sku) {
         throw new HttpException(
           'El SKU del producto es obligatorio para registrar el producto',
           HttpStatus.BAD_REQUEST,
         );
       }
       if (
-        proServData.tipo === 'PROD' &&
+        proServData.tipo === 'PRO' &&
         (!proServData.compra || proServData.compra <= 0)
       ) {
         throw new HttpException(
@@ -829,14 +845,14 @@ export class ContificoService {
         url: `${this.configService.get<string>('CONTIFICO_URI')}/producto/`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
+          Authorization: this.configService.get<string>('CONTIFICO_API_KEY'),
         },
         data: {
           tipo: proServData.tipo,
           nombre: proServData.nombre,
           descripcion: proServData.descripcion || '',
           categoria_id: proServData.categoria,
-          minimo: 1,
+          minimo: 0,
           pvp1: proServData.precio,
           estado: proServData.estado ? 'A' : 'I',
           codigo: proServData.sku,
@@ -851,10 +867,10 @@ export class ContificoService {
       }
 
       if (!proServData.stock || proServData.stock <= 0) {
-        return response.data.id; // Si no hay stock, no se registra movimiento de inventario
+        return { producto: response.data.id }; // Si no hay stock, no se registra movimiento de inventario
       }
 
-      await this.createInventoryMovement(
+      const response2 = await this.createInventoryMovement(
         'ING',
         [
           {
@@ -866,7 +882,7 @@ export class ContificoService {
         'Ingreso de Inventario',
       );
       // Si se crea el movimiento de inventario, retornamos el ID del producto/servicio
-      return response.data.id;
+      return { producto: response.data.id, pos: response2 };
     } catch (error) {
       throw new HttpException(
         error.message || 'Error interno del servidor',
@@ -890,7 +906,7 @@ export class ContificoService {
       precio?: number;
     }>,
     descripcion: string,
-  ): Promise<void> {
+  ): Promise<string> {
     try {
       if (tipo === 'ING') {
         for (const detail of productDetails) {
@@ -915,7 +931,7 @@ export class ContificoService {
         url: `${this.configService.get<string>('CONTIFICO_URI')}/bodega/`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
+          Authorization: this.configService.get<string>('CONTIFICO_API_KEY'),
         },
       });
       const bodegaId = responseBodega.data[0]?.id; // Usamos optional chaining por si no hay bodegas
@@ -953,7 +969,7 @@ export class ContificoService {
         url: `${this.configService.get<string>('CONTIFICO_URI')}/movimiento-inventario/`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
+          Authorization: this.configService.get<string>('CONTIFICO_API_KEY'),
         },
         data: {
           tipo,
@@ -969,7 +985,7 @@ export class ContificoService {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
-      return;
+      return response.data.pos;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         throw new HttpException(
@@ -990,23 +1006,35 @@ export class ContificoService {
    */
   async createClient(clientData: any): Promise<string> {
     try {
+      if (!clientData.cedula) {
+        throw new HttpException(
+          'La cédula del cliente es obligatoria para crear el cliente',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (!clientData.razonSocial) {
+        throw new HttpException(
+          'La razón social del cliente es obligatoria para crear el cliente',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       const response = await axios({
         method: 'POST',
-        url: `${this.configService.get<string>('CONTIFICO_URI')}/persona/?pos=${this.configService.get<string>('CONTIFICO_API_KEY')}`,
+        url: `${this.configService.get<string>('CONTIFICO_URI')}/persona/?pos=${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_API_KEY')}`,
+          Authorization: this.configService.get<string>('CONTIFICO_API_KEY'),
         },
         data: {
           tipo: 'N',
+          razon_social: clientData.razonSocial,
           cedula: clientData.cedula,
           telefonos: clientData.telefono || null,
-          email: clientData.email,
+          email: clientData.email || null,
           direccion: clientData.direccion || null,
-          razon_social: clientData.razonSocial,
-          es_cliente: clientData.esCliente,
-          es_empleado: clientData.esEmpleado,
-          es_vendedor: clientData.esVendedor,
+          es_cliente: clientData.esCliente || false,
+          es_empleado: clientData.esEmpleado || false,
+          es_vendedor: clientData.esVendedor || false,
           es_proveedor: false,
         },
       });
@@ -1031,6 +1059,12 @@ export class ContificoService {
   ): Promise<string> {
     try {
       // 1. Validaciones iniciales
+      if (!documentData.pos) {
+        throw new HttpException(
+          'El pos del movimiento de inventario de Contifico es obligatorio.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       if (!documentData.cliente_id_contifico) {
         throw new HttpException(
           'El ID del cliente de Contifico es obligatorio.',
@@ -1118,7 +1152,7 @@ export class ContificoService {
           porcentaje_iva: d.porcentaje_iva ?? null, // Usar null si es undefined
           porcentaje_descuento: d.porcentaje_descuento ?? 0, // Por defecto 0
           base_cero: d.base_cero ?? 0, // Asumimos 0 si no se proporciona
-          base_gravable: d.base_gravable ?? 0, // Asumimos 0 si no se proporciona
+          base_gravable: d.base_gravable ?? d.precio * d.cantidad,
           base_no_gravable: d.base_no_gravable ?? 0, // Asumimos 0 si no se proporciona
           porcentaje_ice: d.porcentaje_ice ?? 0,
           valor_ice: d.valor_ice ?? 0,
@@ -1131,11 +1165,11 @@ export class ContificoService {
 
       // 5. Construir el payload completo para Contifico
       const payload = {
-        pos: this.configService.get<string>('CONTIFICO_AUTH_TOKEN'), // API Token del POS
+        pos: documentData.pos, // Token del POS del Movimiento de Inventario de Contifico
         fecha_emision: fechaEmision,
-        tipo_documento: documentData.tipo_documento,
+        tipo_documento: documentData.tipo_documento || 'FAC',
         documento: documentData.documento_numero,
-        estado: 'C', // Siempre 'C' = Cobrado según tu indicación
+        estado: 'C', // Siempre 'C' = Cobrado
         electronico: true,
         autorizacion: '', // Siempre en blanco para documentos electrónicos
         caja_id: null, // Ignorado según tu indicación
@@ -1167,7 +1201,7 @@ export class ContificoService {
         subtotal_0: documentData.subtotal_0,
         subtotal_12: documentData.subtotal_12,
         iva: documentData.iva,
-        ice: documentData.ice,
+        ice: documentData.ice || 0.0,
         servicio: documentData.servicio ?? 0.0, // Por defecto 0
         total: documentData.total,
         adicional1: documentData.adicional1 || '',
@@ -1182,7 +1216,7 @@ export class ContificoService {
         url: `${this.configService.get<string>('CONTIFICO_URI')}/documento/`,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.configService.get<string>('CONTIFICO_AUTH_TOKEN')}`,
+          Authorization: this.configService.get<string>('CONTIFICO_API_KEY'),
         },
         data: payload,
       });

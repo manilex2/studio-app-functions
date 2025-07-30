@@ -13,17 +13,18 @@ export interface Register {
   email: string;
   enable: boolean;
   rol: string;
-  phone_number?: string;
-  cargo: string;
+  cargo: string | null;
   cedula: string;
   ngrams: string[];
-  genero: string;
-  completedRegister: boolean;
+  admin: boolean;
+  genero?: string;
+  completedRegister?: boolean;
+  phone_number?: string;
   photo_url?: string;
   unidad?: string;
   nombreUnidad?: string;
   category?: string;
-  birthday?: string;
+  birthday?: string | null;
   direccion?: string;
   medicamentos?: string;
   antecedentesPersonales?: string;
@@ -76,6 +77,7 @@ export class AuthService {
 
   async singUp(body: Register): Promise<void> {
     const clave = await this.claveProv();
+    const batch = this.db.batch();
 
     const {
       email,
@@ -99,6 +101,7 @@ export class AuthService {
       direccion,
       medicamentos,
       idContifico,
+      admin,
     } = body;
 
     try {
@@ -120,6 +123,8 @@ export class AuthService {
         );
       }
 
+      this.logger.debug(`Pase el filtro de verificar usuario`);
+
       const newUserRef = this.db.collection('users').doc();
       const user = {
         email: email.trim(),
@@ -132,14 +137,23 @@ export class AuthService {
         uid: newUserRef.id,
       });
 
+      this.logger.debug(
+        `Pude crear el usuario ${JSON.stringify(userFirebase)}`,
+      );
+
       const rolRef = (await this.db.collection('roles').doc(rol).get()).ref;
+
+      this.logger.debug(`Obtuve el rol ${JSON.stringify(rolRef)}`);
       const unidadDoc = unidad
         ? await this.db.collection('locales').doc(unidad).get()
         : null;
 
+      this.logger.debug(`Pase unidadDoc ${JSON.stringify(unidadDoc)}`);
+
       let photo = '';
 
       if (photo_url) {
+        this.logger.debug(`Hay una foto ${photo_url}`);
         // 1) Extraer MIME y payload base64
         const match = photo_url.match(/^data:(.+);base64,(.+)$/);
         if (!match) {
@@ -192,13 +206,19 @@ export class AuthService {
         firstLogin: true,
         cargo,
         cedula,
-        rolName: this.capitalize(rol),
+        rolName:
+          rolRef.id == 'admin'
+            ? 'admin'
+            : rolRef.id == 'asesor'
+              ? 'Asesor'
+              : 'Cliente',
         ngrams,
-        genero,
+        genero: genero ?? null,
         unidad: unidadDoc ? unidadDoc.ref : null,
-        nombreUnidad: nombreUnidad ?? unidadDoc.data().nombre_unidad,
+        nombreUnidad:
+          nombreUnidad && unidadDoc ? unidadDoc.data().nombre_unidad : null,
         category: category ?? '',
-        birthday: birthday ?? null,
+        birthday: birthday != '' || birthday != null ? birthday : null,
         completedRegister: completedRegister ?? true,
         alergias: alergias ?? '',
         antecedentesFamiliares: antecedentesFamiliares ?? '',
@@ -206,22 +226,12 @@ export class AuthService {
         direccion: direccion ?? '',
         medicamentos: medicamentos ?? '',
         idContifico: idContifico ?? '',
+        regCompRRSS: true, // Registro completo en RRSS
       };
 
-      await newUserRef.set(usuario);
+      batch.set(newUserRef, usuario);
 
-      await this.transporter.sendMail({
-        from: `${this.configService.get<string>('SENDGRID_SENDER_NAME')} <${this.configService.get<string>('SENDGRID_SENDER_EMAIL')}>`,
-        to: email,
-        subject: `Registro de usuario exitoso en ${this.configService.get<string>('STUDIO_NAME')}`,
-        html: `<p>Hola ${display_name}</p>
-               <p>Has sido registrado en la plataforma de ${this.configService.get<string>('STUDIO_NAME')}.</p>
-               <p>Su usuario es el correo electrónico ${email.trim()} y su contraseña provisional: <b>${clave}</b></p>
-               <p>Al iniciar sesión por primera vez se le solicitará cambiar la contraseña.</p>
-               <p>Para ingresar a la plataforma de ${this.configService.get<string>('STUDIO_NAME')} puede ingresar a través del siguiente link: 
-               <a href="${this.configService.get<string>('STUDIO_URL')}">${this.configService.get<string>('STUDIO_NAME')}</a></p>
-               <p>Atentamente,</p><p><b>El equipo de ${this.configService.get<string>('STUDIO_NAME')}</b></p>`,
-      });
+      this.logger.debug(`Creado el usuario ${JSON.stringify(usuario)}`);
 
       if (body.cargo == 'cliente') {
         const cartRef = this.db.collection('shoppingCart').doc();
@@ -230,7 +240,7 @@ export class AuthService {
           shoppingCartItems: [],
           wishListItems: [],
         };
-        await cartRef.set(cartData);
+        batch.set(cartRef, cartData);
 
         const pointsRef = this.db.collection('puntosTotales').doc();
         const pointsData = {
@@ -239,7 +249,30 @@ export class AuthService {
           puntosVigentes: 0,
           puntosPorCaducar: 0,
         };
-        await pointsRef.set(pointsData);
+        batch.set(pointsRef, pointsData);
+
+        this.logger.debug(
+          `Creado el carrito ${JSON.stringify(cartRef)} y los puntos ${JSON.stringify(pointsRef)}`,
+        );
+      }
+
+      await batch.commit();
+
+      if (admin != true) {
+        await this.transporter.sendMail({
+          from: `${this.configService.get<string>('SENDGRID_SENDER_NAME')} <${this.configService.get<string>('SENDGRID_SENDER_EMAIL')}>`,
+          to: email,
+          subject: `Registro de usuario exitoso en ${this.configService.get<string>('STUDIO_NAME')}`,
+          html: `<p>Hola ${display_name}</p>
+               <p>Has sido registrado en la plataforma de ${this.configService.get<string>('STUDIO_NAME')}.</p>
+               <p>Su usuario es el correo electrónico ${email.trim()} y su contraseña provisional: <b>${clave}</b></p>
+               <p>Al iniciar sesión por primera vez se le solicitará cambiar la contraseña.</p>
+               <p>Para ingresar a la plataforma de ${this.configService.get<string>('STUDIO_NAME')} puede ingresar a través del siguiente link: 
+               <a href="${this.configService.get<string>('STUDIO_URL')}">${this.configService.get<string>('STUDIO_NAME')}</a></p>
+               <p>Atentamente,</p><p><b>El equipo de ${this.configService.get<string>('STUDIO_NAME')}</b></p>`,
+        });
+
+        this.logger.debug(`Enviado el correo`);
       }
     } catch (error) {
       throw new HttpException(
@@ -302,6 +335,8 @@ export class AuthService {
     try {
       const userRecord = await this.auth.getUserByEmail(email);
 
+      this.logger.debug(`Pase userRecord: ${userRecord}`);
+
       const token = sign(
         { email },
         this.configService.get<string>('JWT_SECRET'),
@@ -310,14 +345,20 @@ export class AuthService {
         },
       );
 
+      this.logger.debug(`Pase sign de JWT: ${token}`);
+
       await this.db
         .collection('users')
         .doc(userRecord.uid)
         .set({ resetToken: token }, { merge: true });
 
+      this.logger.debug('Pase guardado del token en base de datos');
+
       const resetLink = `${this.configService.get<string>('STUDIO_URL')}/login?email=${encodeURIComponent(
         email,
       )}&token=${encodeURIComponent(token)}`;
+
+      this.logger.debug(resetLink);
 
       await this.transporter.sendMail({
         to: email,
@@ -335,12 +376,13 @@ export class AuthService {
           <p><b>El equipo de ${this.configService.get<string>('STUDIO_NAME')}</b></p>
         `,
       });
+      this.logger.debug('Pase envio de correo');
     } catch (error) {
       if (error.code === 'auth/user-not-found') {
         throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
       }
       throw new HttpException(
-        'Error al procesar la solicitud',
+        `Error al procesar la solicitud ${error}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -372,7 +414,9 @@ export class AuthService {
       await this.db
         .collection('users')
         .doc(userRecord.uid)
-        .update({ resetToken: null, firstLogin: true });
+        .set({ resetToken: null, firstLogin: true }, { merge: true });
+
+      this.logger.debug('Reseteado el token');
 
       await this.transporter.sendMail({
         to: email,
@@ -389,6 +433,8 @@ export class AuthService {
           <p><b>El equipo de ${this.configService.get<string>('STUDIO_NAME')}</b></p>
         `,
       });
+
+      this.logger.debug('Pase envio de correo');
     } catch (error) {
       if (error instanceof JsonWebTokenError) {
         throw new HttpException(
@@ -399,7 +445,7 @@ export class AuthService {
         throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
       }
       throw new HttpException(
-        'Error al procesar la solicitud',
+        `Error al procesar la solicitud ${error}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -444,7 +490,7 @@ export class AuthService {
 
       // Lanzar una excepción genérica para el cliente, pero con el error registrado internamente
       throw new HttpException(
-        'Error al procesar la solicitud de eliminación de cuenta.',
+        `Error al procesar la solicitud de eliminación de cuenta. ${error}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
