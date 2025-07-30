@@ -218,7 +218,7 @@ export class AuthService {
         nombreUnidad:
           nombreUnidad && unidadDoc ? unidadDoc.data().nombre_unidad : null,
         category: category ?? '',
-        birthday: birthday != '' || birthday != null ? birthday : null,
+        birthday: birthday ? new Date(birthday) : null,
         completedRegister: completedRegister ?? true,
         alergias: alergias ?? '',
         antecedentesFamiliares: antecedentesFamiliares ?? '',
